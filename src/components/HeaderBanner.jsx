@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, ShieldCheck, Sparkles, MessageCircle } from 'lucide-react';
+import { Clock, ShieldCheck, Sparkles, MessageCircle, KeyRound } from 'lucide-react';
 
 export default function HeaderBanner({ storeSettings }) {
   const {
@@ -91,8 +91,8 @@ export default function HeaderBanner({ storeSettings }) {
           </div>
         </div>
 
-        {/* Green Contact LINE Action Button */}
-        <div className="mt-3.5 flex items-center justify-center max-w-xs sm:max-w-sm mx-auto">
+        {/* Action Buttons: LINE Contact + Standalone OTP Mailbox Button */}
+        <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2.5 max-w-md sm:max-w-lg mx-auto">
           <a
             href="https://line.me/R/ti/p/@bastore"
             target="_blank"
@@ -105,10 +105,21 @@ export default function HeaderBanner({ storeSettings }) {
               window.open(targetUrl, '_blank', 'noopener,noreferrer');
               e.preventDefault();
             }}
-            className="w-full py-2.5 px-6 rounded-2xl bg-[#06C755] hover:bg-[#05B34C] active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 min-w-[190px] py-2.5 px-5 rounded-2xl bg-[#06C755] hover:bg-[#05B34C] active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <MessageCircle className="w-4 h-4 fill-white" />
             <span>{lineButtonText} {lineId}</span>
+          </a>
+
+          <a
+            href="/otp"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-700 active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-indigo-400/30 shrink-0"
+            title="คลิกเพื่อเปิดหน้าเว็บรับรหัส OTP เมลล์ (เปิดแท็บใหม่)"
+          >
+            <KeyRound className="w-4 h-4 text-yellow-300 animate-pulse" />
+            <span>📬 OTP เมลล์</span>
           </a>
         </div>
 

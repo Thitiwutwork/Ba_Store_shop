@@ -83,17 +83,16 @@ export default function Navbar({
             )}
           </button>
 
-          <button
-            onClick={() => onSelectTab('otp')}
-            className={`px-3.5 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
-              currentTab === 'otp'
-                ? 'bg-white text-indigo-600 shadow-xs font-bold'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}
+          <a
+            href="/otp"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-1.5 rounded-xl font-medium text-gray-600 hover:text-indigo-600 hover:bg-white/50 transition-all flex items-center gap-1.5 cursor-pointer"
+            title="เปิดหน้าเว็บรับรหัส OTP เมลล์ (แท็บใหม่)"
           >
             <KeyRound className="w-4 h-4 text-indigo-500" />
             <span>รับรหัส OTP</span>
-          </button>
+          </a>
 
           {currentUser?.role === 'admin' && (
             <button
@@ -207,15 +206,15 @@ export default function Navbar({
           )}
         </button>
 
-        <button
-          onClick={() => onSelectTab('otp')}
-          className={`py-1.5 px-2.5 rounded-xl flex items-center gap-1 ${
-            currentTab === 'otp' ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-600'
-          }`}
+        <a
+          href="/otp"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="py-1.5 px-2.5 rounded-xl flex items-center gap-1 text-gray-600 hover:text-indigo-600 font-medium"
         >
           <KeyRound className="w-3.5 h-3.5 text-indigo-500" />
           <span>รับ OTP</span>
-        </button>
+        </a>
 
         {currentUser?.role === 'admin' && (
           <button

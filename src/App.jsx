@@ -119,9 +119,8 @@ export default function App() {
   };
 
   const handleGoToOtp = (email = '') => {
-    setOtpEmailQuery(email);
-    setCurrentTab('otp');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const url = email ? `/otp?email=${encodeURIComponent(email)}` : '/otp';
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Auth Handlers

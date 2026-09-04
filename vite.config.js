@@ -47,6 +47,12 @@ export default defineConfig({
     apiDevServerPlugin()
   ],
   build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        otp: 'otp.html'
+      }
+    },
     cssMinify: false,
     sourcemap: false
   }
