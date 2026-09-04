@@ -32,6 +32,13 @@ function extractOtpFromMail(mail) {
     return kwMatch[1];
   }
 
+  // 1b. Check for number followed by keyword e.g. "060159 คือรหัส OTP", "123456 is your code"
+  const revRegex = /\b([0-9]{4,8})[\s\u00a0:：\-–—isareคือได้แก่]*(?:otp|code|verification|รหัส|ยืนยัน)/i;
+  const revMatch = fullContent.match(revRegex);
+  if (revMatch && revMatch[1]) {
+    return revMatch[1];
+  }
+
   // 2. Standalone 4-8 digits in Subject (very common in service emails e.g. "Your Netflix code is 123456")
   const subjectMatch = subject.match(/\b([0-9]{4,8})\b/);
   if (subjectMatch && subjectMatch[1]) {

@@ -55,14 +55,19 @@ export default async function handler(req, res) {
 
     const resData = await upstreamResponse.json();
 
-    // If REST API succeeded and returned mails
-    if (upstreamResponse.ok && resData && Array.isArray(resData.mails)) {
+    // Maily Space API returns { statusCode: 200, data: { totalPage, currentPage, size, mails: [...] } }
+    const mailList = Array.isArray(resData?.data?.mails)
+      ? resData.data.mails
+      : (Array.isArray(resData?.mails) ? resData.mails : []);
+
+    // If REST API succeeded
+    if (upstreamResponse.ok && (resData?.statusCode === 200 || resData?.data || mailList.length >= 0)) {
       return res.status(200).json({
         success: true,
         source: 'v1_api',
-        totalPage: resData.totalPage || 1,
-        currentPage: resData.currentPage || pageParam,
-        mails: resData.mails
+        totalPage: resData?.data?.totalPage || resData?.totalPage || 1,
+        currentPage: resData?.data?.currentPage || resData?.currentPage || pageParam,
+        mails: mailList
       });
     }
 
