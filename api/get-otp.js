@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Mailbox-Pin'
   );
 
   // Handle preflight
@@ -26,8 +26,10 @@ export default async function handler(req, res) {
   const searchParam = req.method === 'POST' ? parsedBody?.search : req.query?.search;
   const pageParam = parseInt(req.method === 'POST' ? parsedBody?.page : req.query?.page) || 1;
   const sizeParam = parseInt(req.method === 'POST' ? parsedBody?.size : req.query?.size) || 40;
+  const pinParam = req.method === 'POST' ? parsedBody?.pin : (req.headers['x-mailbox-pin'] || req.query?.pin);
 
   const rawEmail = (emailParam || '').trim().toLowerCase();
+  const rawPin = pinParam ? String(pinParam).trim() : '';
 
   if (!rawEmail || !rawEmail.includes('@')) {
     return res.status(400).json({
@@ -48,14 +50,22 @@ export default async function handler(req, res) {
     if (searchParam && searchParam.trim()) {
       mailyPayload.search = searchParam.trim();
     }
+    if (rawPin) {
+      mailyPayload.pin = rawPin;
+    }
+
+    const upstreamHeaders = {
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*'
+    };
+    if (rawPin) {
+      upstreamHeaders['X-Mailbox-Pin'] = rawPin;
+    }
 
     const upstreamResponse = await fetch('https://api.maily.space/v1/mails', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
-      },
+      headers: upstreamHeaders,
       body: JSON.stringify(mailyPayload)
     });
 
@@ -65,6 +75,22 @@ export default async function handler(req, res) {
       resData = JSON.parse(textData);
     } catch (e) {
       console.error('Non-JSON response from Maily Space:', textData?.slice(0, 200));
+    }
+
+    // Check if upstream returned PIN challenge or PIN error
+    if (
+      upstreamResponse.status === 403 ||
+      resData?.statusCode === 403 ||
+      resData?.message === 'กรุณาใส่ PIN' ||
+      resData?.message === 'PIN ไม่ถูกต้อง'
+    ) {
+      return res.status(403).json({
+        success: false,
+        requirePin: true,
+        isPinInvalid: resData?.message === 'PIN ไม่ถูกต้อง',
+        message: resData?.message || 'กรุณาใส่ PIN',
+        error: resData?.message || 'กล่องข้อความนี้ต้องใช้รหัส PIN'
+      });
     }
 
     const mailList = Array.isArray(resData?.data?.mails)
@@ -97,7 +123,23 @@ export default async function handler(req, res) {
       }
 
       const publicUrl = `https://api.maily.space/mail/public/mails?${queryParams.toString()}`;
-      const pubRes = await fetch(publicUrl);
+      const pubHeaders = {};
+      if (rawPin) {
+        pubHeaders['X-Mailbox-Pin'] = rawPin;
+      }
+      const pubRes = await fetch(publicUrl, { headers: pubHeaders });
+
+      if (pubRes.status === 403) {
+        let pubData = null;
+        try { pubData = await pubRes.json(); } catch (_) {}
+        return res.status(403).json({
+          success: false,
+          requirePin: true,
+          isPinInvalid: pubData?.message === 'PIN ไม่ถูกต้อง',
+          message: pubData?.message || 'กรุณาใส่ PIN',
+          error: pubData?.message || 'กล่องข้อความนี้ต้องใช้รหัส PIN'
+        });
+      }
 
       if (pubRes.ok) {
         const pubData = await pubRes.json();
