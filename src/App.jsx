@@ -98,6 +98,11 @@ export default function App() {
 
   // Purchase Execution
   const handleConfirmPurchase = ({ productId, productName, tierLabel, price, customerNote }) => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      showToast('กรุณาเข้าสู่ระบบหรือสมัครสมาชิกก่อนสั่งซื้อ', '🔒');
+      return;
+    }
     const res = purchaseProduct({ productId, productName, tierLabel, price, customerNote });
     if (res.success) {
       setWalletBalanceState(res.remainingBalance);
@@ -113,6 +118,11 @@ export default function App() {
 
   // Topup Execution
   const handleProcessTopup = async ({ amount, slipImage, mockMode }) => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      showToast('กรุณาเข้าสู่ระบบหรือสมัครสมาชิกก่อนเติมเงิน', '🔒');
+      return;
+    }
     const res = await processSlipTopup({ amount, slipImage, mockMode });
     if (res.success) {
       setWalletBalanceState(getWalletBalance());

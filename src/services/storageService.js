@@ -56,15 +56,7 @@ const DEFAULT_USERS = [
     password: 'admin',
     displayName: 'ผู้ดูแลระบบ (Admin)',
     role: 'admin',
-    walletBalance: 9999.00
-  },
-  {
-    id: 'usr-customer-1',
-    email: 'customer@gmail.com',
-    password: '123',
-    displayName: 'คุณลูกค้า VIP',
-    role: 'user',
-    walletBalance: 250.00
+    walletBalance: 0.00
   }
 ];
 
@@ -73,13 +65,14 @@ export function getUsers() {
 }
 
 export function getCurrentUser() {
-  return loadData(STORAGE_KEYS.CURRENT_USER, {
-    id: 'usr-customer-1',
-    email: 'customer@gmail.com',
-    displayName: 'ลูกค้า VIP (สาธิต)',
-    role: 'user',
-    walletBalance: 250.00
-  });
+  const user = loadData(STORAGE_KEYS.CURRENT_USER, null);
+  // Automatically clear old demo user if present from earlier tests
+  if (user && (user.id === 'usr-customer-1' || user.displayName?.includes('สาธิต') || user.email === 'customer@gmail.com')) {
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    localStorage.removeItem(STORAGE_KEYS.WALLET);
+    return null;
+  }
+  return user;
 }
 
 export function setCurrentUser(user) {
@@ -130,6 +123,7 @@ export function registerUser({ email, password, displayName }) {
 
 export function logoutUser() {
   localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  localStorage.removeItem(STORAGE_KEYS.WALLET);
   addAuditLog('USER_LOGOUT', {});
   return null;
 }
@@ -326,7 +320,8 @@ export function getWalletBalance() {
     return parseFloat(currentUser.walletBalance);
   }
   const raw = localStorage.getItem(STORAGE_KEYS.WALLET);
-  return raw !== null ? parseFloat(raw) : 250.00;
+  if (!currentUser) return 0.00;
+  return raw !== null ? parseFloat(raw) : 0.00;
 }
 
 export function setWalletBalance(amount) {
