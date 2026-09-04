@@ -45,15 +45,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, onShowToast 
     }
   };
 
-  // Quick Demo Login Helper
-  const handleQuickLogin = (demoEmail, demoPass) => {
-    const res = loginUser(demoEmail, demoPass);
-    if (res.success) {
-      onAuthSuccess(res.user);
-      if (onShowToast) onShowToast(`👋 เข้าสู่ระบบในฐานะ: ${res.user.displayName}`, '🎉');
-      onClose();
-    }
-  };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -167,26 +159,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, onShowToast 
           </button>
         </form>
 
-        {/* Quick Test Demo Accounts Section */}
-        <div className="pt-3 border-t border-gray-100 text-center space-y-2">
-          <p className="text-[11px] text-gray-400 font-medium">⚡ ปุ่มทางลัดสำหรับทดสอบระบบด่วน:</p>
-          <div className="flex gap-2 justify-center">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('customer@gmail.com', '123')}
-              className="px-3 py-1.5 rounded-xl bg-pink-50 text-pink-700 text-[11px] font-bold hover:bg-pink-100 transition-colors"
-            >
-              👤 ล็อกอินเป็นลูกค้า (VIP)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin@bastore.com', 'admin')}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-[11px] font-bold hover:bg-slate-200 transition-colors"
-            >
-              🛡️ ล็อกอินเป็นแอดมิน
-            </button>
-          </div>
-        </div>
+
 
       </div>
     </div>
