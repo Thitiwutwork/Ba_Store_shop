@@ -329,8 +329,10 @@ export function getStoreSettings() {
     announcement: '📢 หากต้องการสั่งตัดต่อแบบ "เมลลูกค้า (เมลตัวเอง)" รบกวนทัก LINE ทางร้านแทนนะงับ ♡',
     counterUsersText: '3,480+',
     counterSoldBase: 18924,
-    lineButtonText: 'สั่งซื้อ / สอบถามทาง LINE',
+    lineButtonText: 'ติดต่อสั่งซื้อทาง LINE',
     guaranteeText: 'รับประกันดูแลตลอดการใช้งาน',
+    otpMailButtonText: 'กด OTP เมลล์',
+    otpMailUrl: 'https://maily.space/mailbox',
     customQrImage: null, // Support uploading custom PromptPay QR image
     slipokApiKey: 'EwX99Tg_lRWs0SVPGnKlM4NN3j21CY3o1b_XFLkoUBE=',
     slipokBranchId: 'bastore',
@@ -338,6 +340,19 @@ export function getStoreSettings() {
   };
   const settings = loadData(STORAGE_KEYS.SETTINGS, defaults);
   let updated = false;
+
+  if (!settings.otpMailButtonText) {
+    settings.otpMailButtonText = 'กด OTP เมลล์';
+    updated = true;
+  }
+  if (!settings.otpMailUrl) {
+    settings.otpMailUrl = 'https://maily.space/mailbox';
+    updated = true;
+  }
+  if (!settings.lineButtonText || settings.lineButtonText === 'สั่งซื้อ / สอบถามทาง LINE') {
+    settings.lineButtonText = 'ติดต่อสั่งซื้อทาง LINE';
+    updated = true;
+  }
 
   if (!settings.announcement || settings.announcement.includes('ลงทะเบียนมาก่อนสั่งตัด') || settings.announcement.includes('ทุกออเดอร์ไม่รับส่งก่อน')) {
     settings.announcement = '📢 หากต้องการสั่งตัดต่อแบบ "เมลลูกค้า (เมลตัวเอง)" รบกวนทัก LINE ทางร้านแทนนะงับ ♡';
