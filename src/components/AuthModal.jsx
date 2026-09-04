@@ -12,35 +12,39 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, onShowToast 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (mode === 'login') {
-      const res = loginUser(email, password);
-      if (res.success) {
-        onAuthSuccess(res.user);
-        if (onShowToast) onShowToast(`👋 ยินดีต้อนรับคุณ ${res.user.displayName}`, '🎉');
-        onClose();
+    try {
+      if (mode === 'login') {
+        const res = await loginUser(email, password);
+        if (res.success) {
+          onAuthSuccess(res.user);
+          if (onShowToast) onShowToast(`👋 ยินดีต้อนรับคุณ ${res.user.displayName}`, '🎉');
+          onClose();
+        } else {
+          setError(res.error || 'เข้าสู่ระบบไม่สำเร็จ');
+        }
       } else {
-        setError(res.error || 'เข้าสู่ระบบไม่สำเร็จ');
+        if (!email || !password) {
+          setError('กรุณากรอกอีเมลและรหัสผ่าน');
+          setLoading(false);
+          return;
+        }
+        const res = await registerUser({ email, password, displayName });
+        if (res.success) {
+          onAuthSuccess(res.user);
+          if (onShowToast) onShowToast(`🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับ!`, '✨');
+          onClose();
+        } else {
+          setError(res.error || 'สมัครสมาชิกไม่สำเร็จ');
+        }
       }
-      setLoading(false);
-    } else {
-      if (!email || !password) {
-        setError('กรุณากรอกอีเมลและรหัสผ่าน');
-        setLoading(false);
-        return;
-      }
-      const res = registerUser({ email, password, displayName });
-      if (res.success) {
-        onAuthSuccess(res.user);
-        if (onShowToast) onShowToast(`🎉 สมัครสมาชิกสำเร็จ ยินดีต้อนรับ!`, '✨');
-        onClose();
-      } else {
-        setError(res.error || 'สมัครสมาชิกไม่สำเร็จ');
-      }
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อระบบ');
+    } finally {
       setLoading(false);
     }
   };

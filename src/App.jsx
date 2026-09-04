@@ -34,7 +34,8 @@ import {
   rejectManualTransaction,
   getAuditLogs,
   getCurrentUser,
-  logoutUser
+  logoutUser,
+  initCloudSync
 } from './services/storageService';
 
 export default function App() {
@@ -72,6 +73,36 @@ export default function App() {
       setToast((prev) => ({ ...prev, isVisible: false }));
     }, 3500);
   };
+
+  // ☁️ Initialize Supabase Cloud Database Sync & Realtime Listeners
+  useEffect(() => {
+    let unsubscribe = null;
+    initCloudSync(({ key, data }) => {
+      if (key === 'products' && Array.isArray(data)) setProducts(data);
+      if (key === 'promotions' && Array.isArray(data)) setPromotions(data);
+      if (key === 'settings' && data) setStoreSettings(data);
+      if (key === 'orders' && Array.isArray(data)) setOrders(data);
+      if (key === 'stock' && Array.isArray(data)) setStockItems(data);
+      if (key === 'transactions' && Array.isArray(data)) setTransactions(data);
+      if (key === 'audit_logs' && Array.isArray(data)) setAuditLogs(data);
+      if (key === 'users' && Array.isArray(data)) {
+        const curr = getCurrentUser();
+        if (curr) {
+          const fresh = data.find((u) => u.id === curr.id || u.email?.toLowerCase() === curr.email?.toLowerCase());
+          if (fresh) {
+            setCurrentUser(fresh);
+            setWalletBalanceState(parseFloat(fresh.walletBalance) || 0);
+          }
+        }
+      }
+    }).then((unsub) => {
+      unsubscribe = unsub;
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
 
   // Sync wallet on user change
   useEffect(() => {

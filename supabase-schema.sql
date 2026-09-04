@@ -224,6 +224,37 @@ create table if not exists public.security_audit_logs (
   created_at timestamptz default now()
 );
 
+-- ------------------------------------------------------------------------------
+-- 10. ตาราง store_data (คลังข้อมูล JSON ไฮบริด ซิงค์สถานะร้านค้าและผู้ใช้งานแบบ Realtime)
+-- ------------------------------------------------------------------------------
+create table if not exists public.store_data (
+  key text primary key,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+
+-- เปิดใช้งาน Realtime สำหรับ store_data
+do $$
+begin
+  alter publication supabase_realtime add table public.store_data;
+exception
+  when others then null;
+end $$;
+
+-- ปลดล็อค Row Level Security เพื่อให้ระบบร้านค้าอ่าน-เขียนข้อมูลได้อย่างสมบูรณ์
+alter table public.store_data disable row level security;
+alter table public.profiles disable row level security;
+alter table public.products disable row level security;
+alter table public.categories disable row level security;
+alter table public.promotions disable row level security;
+alter table public.stock_items disable row level security;
+alter table public.raw_accounts disable row level security;
+alter table public.dispatched_accounts disable row level security;
+alter table public.orders disable row level security;
+alter table public.topup_transactions disable row level security;
+alter table public.store_settings disable row level security;
+alter table public.security_audit_logs disable row level security;
+
 -- ==============================================================================
 -- 🔒 DATABASE FUNCTIONS: ATOMIC TRANSACTION ป้องกัน RACE CONDITION 100%
 -- ==============================================================================

@@ -10,6 +10,7 @@ import {
   DEFAULT_ORDERS,
   CATEGORIES
 } from '../data/initialData';
+import { getSupabaseClient, isSupabaseConfigured } from '../utils/supabaseClient';
 
 const STORAGE_KEYS = {
   SETTINGS: 'ba_store_settings',
@@ -27,6 +28,32 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'ba_store_audit_logs'
 };
 
+const CLOUD_TO_KEY_MAP = {
+  settings: STORAGE_KEYS.SETTINGS,
+  products: STORAGE_KEYS.PRODUCTS,
+  promotions: STORAGE_KEYS.PROMOTIONS,
+  stock: STORAGE_KEYS.STOCK,
+  raw_accounts: STORAGE_KEYS.RAW_ACCOUNTS,
+  dispatched_accounts: STORAGE_KEYS.DISPATCHED_ACCOUNTS,
+  orders: STORAGE_KEYS.ORDERS,
+  users: STORAGE_KEYS.USERS,
+  transactions: STORAGE_KEYS.TRANSACTIONS,
+  audit_logs: STORAGE_KEYS.AUDIT_LOGS
+};
+
+const KEY_TO_CLOUD_MAP = {
+  [STORAGE_KEYS.SETTINGS]: 'settings',
+  [STORAGE_KEYS.PRODUCTS]: 'products',
+  [STORAGE_KEYS.PROMOTIONS]: 'promotions',
+  [STORAGE_KEYS.STOCK]: 'stock',
+  [STORAGE_KEYS.RAW_ACCOUNTS]: 'raw_accounts',
+  [STORAGE_KEYS.DISPATCHED_ACCOUNTS]: 'dispatched_accounts',
+  [STORAGE_KEYS.ORDERS]: 'orders',
+  [STORAGE_KEYS.USERS]: 'users',
+  [STORAGE_KEYS.TRANSACTIONS]: 'transactions',
+  [STORAGE_KEYS.AUDIT_LOGS]: 'audit_logs'
+};
+
 // Safe JSON loader with fallback
 function loadData(key, fallback) {
   try {
@@ -38,12 +65,95 @@ function loadData(key, fallback) {
   }
 }
 
-function saveData(key, data) {
+// Local only saver
+function saveDataLocalOnly(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
-    console.error(`Error saving ${key}:`, e);
+    console.error(`Error saving local ${key}:`, e);
   }
+}
+
+// Dual saver (local + Supabase cloud)
+function saveData(key, data) {
+  saveDataLocalOnly(key, data);
+  const cloudKey = KEY_TO_CLOUD_MAP[key];
+  if (cloudKey) {
+    syncToCloud(cloudKey, data);
+  }
+}
+
+// Cloud sync helper (pushes to store_data and relational tables)
+async function syncToCloud(key, data) {
+  if (!isSupabaseConfigured()) return;
+  const client = getSupabaseClient();
+  if (!client) return;
+
+  try {
+    // 1. Primary sync to store_data table
+    await client.from('store_data').upsert({
+      key,
+      data,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+
+    // 2. Dual-write to relational tables if matching
+    if (key === 'products' && Array.isArray(data)) {
+      const rows = data.map((p, idx) => ({
+        id: p.id,
+        name: p.name || '',
+        category: p.category || 'ทั้งหมด',
+        tag: p.tag || '',
+        tag_color: p.tagColor || 'pink',
+        devices: p.devices || '',
+        resolution: p.resolution || '',
+        package_details: p.packageDetails || '',
+        sub_detail: p.subDetail || '',
+        icon: p.icon || '',
+        in_stock: p.inStock !== false,
+        prices: Array.isArray(p.prices) ? p.prices : [],
+        sort_order: typeof idx === 'number' ? idx : 0,
+        updated_at: new Date().toISOString()
+      }));
+      await client.from('products').upsert(rows, { onConflict: 'id' });
+    } else if (key === 'settings' && data) {
+      const row = {
+        id: 'main',
+        store_name: data.storeName || 'BA STORE',
+        badge_text: data.badgeText || '',
+        description: data.description || '',
+        sub_description: data.subDescription || '',
+        opening_hours: data.openingHours || '',
+        announcement: data.announcement || '',
+        banner_url: data.bannerUrl || '',
+        logo_url: data.logoUrl || '',
+        line_id: data.lineId || '',
+        line_url: data.lineUrl || '',
+        promptpay_number: data.promptpayNumber || '0982824986',
+        admin_pin: data.adminPin || '1234',
+        updated_at: new Date().toISOString()
+      };
+      await client.from('store_settings').upsert([row], { onConflict: 'id' });
+    }
+  } catch (err) {
+    console.warn(`[Supabase Cloud] sync failed for ${key}:`, err);
+  }
+}
+
+// Cloud fetch helper
+async function fetchFromCloud(key) {
+  if (!isSupabaseConfigured()) return null;
+  const client = getSupabaseClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client.from('store_data').select('data').eq('key', key).single();
+    if (!error && data && data.data !== undefined) {
+      return data.data;
+    }
+  } catch (err) {
+    console.warn(`[Supabase Cloud] fetch error for ${key}:`, err);
+  }
+  return null;
 }
 
 // ----------------------------------------------------------------------
@@ -76,48 +186,73 @@ export function getCurrentUser() {
 }
 
 export function setCurrentUser(user) {
-  saveData(STORAGE_KEYS.CURRENT_USER, user);
+  saveDataLocalOnly(STORAGE_KEYS.CURRENT_USER, user);
   if (user && user.walletBalance !== undefined) {
     setWalletBalance(user.walletBalance);
   }
   return user;
 }
 
-export function loginUser(email, password) {
-  const users = getUsers();
-  const found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
+export async function loginUser(email, password) {
+  let users = getUsers();
+  let found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
+
+  // If not found in local cache, fetch fresh from Supabase Cloud
+  if (!found) {
+    try {
+      const cloudUsers = await fetchFromCloud('users');
+      if (Array.isArray(cloudUsers)) {
+        users = cloudUsers;
+        saveDataLocalOnly(STORAGE_KEYS.USERS, users);
+        found = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
+      }
+    } catch (e) {}
+  }
+
   if (!found) {
     return { success: false, error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };
   }
+
   const sessionUser = {
     id: found.id,
     email: found.email,
     displayName: found.displayName,
     role: found.role,
-    walletBalance: found.walletBalance ?? 250.00
+    walletBalance: parseFloat(found.walletBalance) || 0.00
   };
   setCurrentUser(sessionUser);
   addAuditLog('USER_LOGIN', { email: found.email, role: found.role });
   return { success: true, user: sessionUser };
 }
 
-export function registerUser({ email, password, displayName }) {
-  const users = getUsers();
+export async function registerUser({ email, password, displayName }) {
+  let users = getUsers();
+  try {
+    const cloudUsers = await fetchFromCloud('users');
+    if (Array.isArray(cloudUsers)) {
+      users = cloudUsers;
+      saveDataLocalOnly(STORAGE_KEYS.USERS, users);
+    }
+  } catch (e) {}
+
   if (users.some(u => u.email.toLowerCase() === email.trim().toLowerCase())) {
     return { success: false, error: 'อีเมลนี้ถูกลงทะเบียนไว้ในระบบแล้ว' };
   }
+
   const newUser = {
-    id: `usr-${Date.now()}`,
+    id: `usr-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
     email: email.trim(),
     password: password,
     displayName: displayName.trim() || email.split('@')[0],
     role: 'user',
-    walletBalance: 0.00
+    walletBalance: 0.00,
+    createdAt: new Date().toISOString()
   };
+
   users.push(newUser);
   saveData(STORAGE_KEYS.USERS, users);
   setCurrentUser(newUser);
-  addAuditLog('USER_REGISTER', { email: newUser.email });
+  addAuditLog('USER_REGISTER', { email: newUser.email, id: newUser.id });
   return { success: true, user: newUser };
 }
 
@@ -1083,3 +1218,83 @@ function hashString(str) {
   }
   return hash;
 }
+
+// ----------------------------------------------------------------------
+// ☁️ Real-time Cloud Synchronization Engine (Supabase PostgreSQL)
+// ----------------------------------------------------------------------
+export async function initCloudSync(onSyncCallback) {
+  if (!isSupabaseConfigured()) return () => {};
+  const client = getSupabaseClient();
+  if (!client) return () => {};
+
+  // 1. Initial Pull: Fetch all store records from Supabase Cloud
+  try {
+    const { data: rows, error } = await client.from('store_data').select('*');
+    if (!error && Array.isArray(rows)) {
+      rows.forEach((row) => {
+        if (!row.key || row.data === undefined) return;
+        const localKey = CLOUD_TO_KEY_MAP[row.key];
+        if (localKey) {
+          saveDataLocalOnly(localKey, row.data);
+          if (onSyncCallback) {
+            onSyncCallback({ key: row.key, data: row.data });
+          }
+        }
+      });
+    }
+
+    // 2. Fallback check for relational products if store_data was empty
+    const currentProds = loadData(STORAGE_KEYS.PRODUCTS, null);
+    if (!currentProds || currentProds.length === 0) {
+      const { data: remoteProds } = await client.from('products').select('*').order('sort_order', { ascending: true });
+      if (remoteProds && remoteProds.length > 0) {
+        const mapped = remoteProds.map((r, idx) => ({
+          id: r.id,
+          name: r.name || '',
+          category: r.category || 'ทั้งหมด',
+          tag: r.tag || '',
+          tagColor: r.tag_color || r.tagColor || 'pink',
+          devices: r.devices || '',
+          resolution: r.resolution || '',
+          packageDetails: r.package_details || r.packageDetails || '',
+          subDetail: r.sub_detail || r.subDetail || '',
+          icon: r.icon || '',
+          inStock: r.in_stock !== false,
+          prices: Array.isArray(r.prices) ? r.prices : [],
+          sortOrder: typeof r.sort_order === 'number' ? r.sort_order : idx
+        }));
+        saveData(STORAGE_KEYS.PRODUCTS, mapped);
+        if (onSyncCallback) onSyncCallback({ key: 'products', data: mapped });
+      }
+    }
+  } catch (err) {
+    console.warn('[Supabase Cloud] Initial sync fetch error:', err);
+  }
+
+  // 3. Realtime WebSocket: Listen for live changes from other devices/tabs
+  try {
+    const channel = client.channel('ba_store_cloud_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_data' }, (payload) => {
+        if (payload.new && payload.new.key) {
+          const cloudKey = payload.new.key;
+          const cloudData = payload.new.data;
+          const localKey = CLOUD_TO_KEY_MAP[cloudKey];
+          if (localKey && cloudData !== undefined) {
+            saveDataLocalOnly(localKey, cloudData);
+            if (onSyncCallback) {
+              onSyncCallback({ key: cloudKey, data: cloudData, eventType: payload.eventType });
+            }
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('[Supabase Cloud] Realtime channel setup error:', err);
+    return () => {};
+  }
+}
+
