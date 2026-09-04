@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, AlertCircle, Sparkles, Wallet, Mail } from 'lucide-react';
+import { X, Check, AlertCircle, Sparkles, Wallet, MessageCircle } from 'lucide-react';
 
 export default function OrderModal({
   isOpen,
@@ -16,9 +16,19 @@ export default function OrderModal({
   const [customerNote, setCustomerNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Filter out 'เมลล์ลูกค้า' tiers as customer email cut is now handled via LINE
+  const availablePrices = (product?.prices || []).filter(
+    (tier) =>
+      !tier.label?.includes('เมลล์ลูกค้า') &&
+      !tier.label?.includes('เมลลูกค้า') &&
+      !tier.label?.includes('อีเมลลูกค้า')
+  );
+
   useEffect(() => {
     if (product) {
-      if (product.prices && product.prices.length > 0) {
+      if (availablePrices.length > 0) {
+        setSelectedTier(availablePrices[0]);
+      } else if (product.prices && product.prices.length > 0) {
         setSelectedTier(product.prices[0]);
       } else {
         setSelectedTier({
@@ -33,7 +43,6 @@ export default function OrderModal({
 
   const priceNum = selectedTier ? parseFloat(selectedTier.price) || 0 : 0;
   const hasEnoughBalance = walletBalance >= priceNum;
-  const isCustomerEmailTier = selectedTier?.label?.includes('เมลล์ลูกค้า') || selectedTier?.label?.includes('อีเมล');
 
   const handlePurchase = () => {
     if (!hasEnoughBalance) {
@@ -88,13 +97,13 @@ export default function OrderModal({
         </div>
 
         {/* Options / Tiers Selector */}
-        {product.prices && product.prices.length > 0 && (
+        {(availablePrices.length > 0 || (product.prices && product.prices.length > 0)) && (
           <div className="space-y-2">
             <label className="text-xs font-bold text-gray-700 block">
-              เลือกรูปแบบแพ็กเกจ:
+              เลือกรูปแบบแพ็กเกจ (เมลร้าน / Code เติม):
             </label>
             <div className="grid grid-cols-1 gap-2">
-              {product.prices.map((tier) => {
+              {(availablePrices.length > 0 ? availablePrices : product.prices).map((tier) => {
                 const isSelected = selectedTier?.id === tier.id || selectedTier?.label === tier.label;
                 return (
                   <div
@@ -134,25 +143,29 @@ export default function OrderModal({
           </div>
         )}
 
-        {/* Customer Email Input (for email-cut tiers) */}
-        {isCustomerEmailTier && (
-          <div className="space-y-1.5 bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/70">
-            <label className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-amber-600" />
-              <span>ระบุอีเมลของคุณที่ต้องการให้ทางร้านตัดสิทธิ์:</span>
-            </label>
-            <input
-              type="text"
-              value={customerNote}
-              onChange={(e) => setCustomerNote(e.target.value)}
-              placeholder="ตัวอย่าง: customer.email@gmail.com"
-              className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-            <p className="text-[10px] text-amber-700">
-              *หากยังไม่มีเมล สามารถเว้นว่างไว้แล้วแจ้งแอดมินทาง LINE ภายหลังได้ครับ
-            </p>
+        {/* Notice for Customer Email Cut via LINE */}
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 p-3.5 rounded-2xl border border-emerald-200/80 flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start gap-2.5">
+            <span className="text-xl shrink-0">💡</span>
+            <div>
+              <h4 className="text-xs font-bold text-emerald-900">
+                ต้องการสั่งตัดสิทธิ์ด้วย "เมลตัวเอง" ?
+              </h4>
+              <p className="text-[11px] text-emerald-700 mt-0.5 leading-relaxed">
+                บนเว็บจำหน่ายเฉพาะเมลร้านพร้อมใช้งานและโค้ดเติม หากต้องการต่อเมลตัวเอง รบกวนทักไลน์ทางร้านแทนนะครับ
+              </p>
+            </div>
           </div>
-        )}
+          <a
+            href="https://line.me/R/ti/p/@bastore"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#06C755] hover:bg-[#05B34C] active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <MessageCircle className="w-3.5 h-3.5 fill-white" />
+            <span>ทัก LINE</span>
+          </a>
+        </div>
 
         {/* Price Summary & Wallet Status */}
         <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-2xl border border-pink-100 flex items-center justify-between">

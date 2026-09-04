@@ -11,6 +11,7 @@ import OrderHistoryPage from './components/OrderHistoryPage';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import Toast from './components/Toast';
+import { MessageCircle } from 'lucide-react';
 
 import {
   getStoreSettings,
@@ -312,6 +313,40 @@ export default function App() {
               soldCount={orders.length}
               storeSettings={storeSettings}
             />
+
+            {/* Email-Cut LINE Announcement Banner */}
+            <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 rounded-3xl p-4 sm:p-5 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-3.5 border border-pink-300/40">
+              <div className="flex items-center gap-3 text-center sm:text-left">
+                <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-2xl shadow-xs">
+                  📢
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base leading-snug">
+                    ต้องการสั่งตัดแพ็กเกจด้วย "เมลตัวเอง (เมลลูกค้า)" ใช่ไหม?
+                  </h3>
+                  <p className="text-xs sm:text-sm text-pink-100 mt-0.5 font-normal">
+                    บนเว็บไซต์จำหน่ายเฉพาะเมลร้านพร้อมใช้และ Code เติมเอง หากต้องการตัดต่อเมลตัวเอง รบกวนทักไลน์ทางร้านแทนนะครับ
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://line.me/R/ti/p/@bastore"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  const cleanId = (storeSettings?.lineId || '@bastore').replace(/^@/, '');
+                  const targetUrl = storeSettings?.lineUrl && !storeSettings.lineUrl.includes('~')
+                    ? storeSettings.lineUrl
+                    : `https://line.me/R/ti/p/@${cleanId}`;
+                  window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                  e.preventDefault();
+                }}
+                className="bg-white hover:bg-pink-50 active:scale-95 text-[#06C755] px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 fill-[#06C755] text-[#06C755]" />
+                <span>ทัก LINE สั่งตัดเมลตัวเอง</span>
+              </a>
+            </div>
 
             {/* Duo Bundle Promotions */}
             <PromotionSection

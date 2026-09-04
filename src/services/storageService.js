@@ -326,7 +326,7 @@ export function logoutUser() {
 export function getStoreSettings() {
   const defaults = {
     ...DEFAULT_STORE_SETTINGS,
-    announcement: '✨ ทุกออเดอร์ไม่รับส่งก่อนน้า / เมลล์ลูกค้ารบกวนลงทะเบียนมาก่อนสั่งตัดทุกครั้งนะงับ ♡',
+    announcement: '📢 หากต้องการสั่งตัดต่อแบบ "เมลลูกค้า (เมลตัวเอง)" รบกวนทัก LINE ทางร้านแทนนะงับ ♡',
     counterUsersText: '3,480+',
     counterSoldBase: 18924,
     lineButtonText: 'สั่งซื้อ / สอบถามทาง LINE',
@@ -339,6 +339,10 @@ export function getStoreSettings() {
   const settings = loadData(STORAGE_KEYS.SETTINGS, defaults);
   let updated = false;
 
+  if (!settings.announcement || settings.announcement.includes('ลงทะเบียนมาก่อนสั่งตัด') || settings.announcement.includes('ทุกออเดอร์ไม่รับส่งก่อน')) {
+    settings.announcement = '📢 หากต้องการสั่งตัดต่อแบบ "เมลลูกค้า (เมลตัวเอง)" รบกวนทัก LINE ทางร้านแทนนะงับ ♡';
+    updated = true;
+  }
   if (!settings.slip2goEndpoint || settings.slip2goEndpoint.trim() === '') {
     settings.slip2goEndpoint = '/api/verify-slip';
     updated = true;
@@ -407,6 +411,20 @@ export function getProducts() {
     if (p.name.includes('YOUKU') && p.icon !== '/logo/youku.jpg') {
       p.icon = '/logo/youku.jpg';
       updated = true;
+    }
+
+    // Filter out customer email tiers from products
+    if (p.prices && p.prices.length > 0) {
+      const filtered = p.prices.filter(
+        (price) =>
+          !price.label?.includes('เมลล์ลูกค้า') &&
+          !price.label?.includes('เมลลูกค้า') &&
+          !price.label?.includes('อีเมลลูกค้า')
+      );
+      if (filtered.length > 0 && filtered.length !== p.prices.length) {
+        p.prices = filtered;
+        updated = true;
+      }
     }
   });
 

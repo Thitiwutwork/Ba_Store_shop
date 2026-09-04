@@ -2,9 +2,18 @@ import React from 'react';
 import { ShoppingCart, CheckCircle2, Shield } from 'lucide-react';
 
 export default function ProductCard({ product, onSelectProduct, stockCount = 0 }) {
-  // Find minimum starting price among tiers
-  const minPrice = product.prices && product.prices.length > 0
-    ? Math.min(...product.prices.map(p => parseFloat(p.price) || 0))
+  // Filter out customer email tiers
+  const visiblePrices = (product.prices || []).filter(
+    (tier) =>
+      !tier.label?.includes('เมลล์ลูกค้า') &&
+      !tier.label?.includes('เมลลูกค้า') &&
+      !tier.label?.includes('อีเมลลูกค้า')
+  );
+  const displayPrices = visiblePrices.length > 0 ? visiblePrices : (product.prices || []);
+
+  // Find minimum starting price among active tiers
+  const minPrice = displayPrices && displayPrices.length > 0
+    ? Math.min(...displayPrices.map(p => parseFloat(p.price) || 0))
     : 0;
 
   return (
@@ -44,9 +53,9 @@ export default function ProductCard({ product, onSelectProduct, stockCount = 0 }
         </div>
 
         {/* Multi-tier Prices List */}
-        {product.prices && product.prices.length > 0 && (
+        {displayPrices && displayPrices.length > 0 && (
           <div className="mt-3.5 bg-pink-50/50 rounded-2xl p-2.5 space-y-1.5 text-xs border border-pink-100/60">
-            {product.prices.map((tier) => (
+            {displayPrices.map((tier) => (
               <div key={tier.id} className="flex items-center justify-between font-medium">
                 <span className="text-gray-600 truncate mr-2">{tier.label}:</span>
                 <span className="font-bold text-rose-600 shrink-0">฿{tier.price}</span>
@@ -60,7 +69,7 @@ export default function ProductCard({ product, onSelectProduct, stockCount = 0 }
       <div className="mt-4 pt-3.5 border-t border-pink-50 flex items-center justify-between gap-2">
         <div>
           <span className="text-[10px] text-gray-400 block leading-none">
-            {product.prices?.length > 1 ? 'เริ่มต้น' : 'ราคา'}
+            {displayPrices.length > 1 ? 'เริ่มต้น' : 'ราคา'}
           </span>
           <div className="text-lg sm:text-xl font-black text-rose-600 leading-tight">
             ฿ {minPrice}

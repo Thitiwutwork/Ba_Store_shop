@@ -6,7 +6,7 @@ export default function HeaderBanner({ storeSettings }) {
     storeName = 'BA STORE',
     description = 'ขายส่งแอพพรีเมี่ยมราคาถูกม๊ากก 💖',
     openingHours = 'เปิด 09.00 - 23.00 น.',
-    announcement = '✨ ทุกออเดอร์ไม่รับส่งก่อนน้า / เมลล์ลูกค้ารบกวนลงทะเบียนมาก่อนสั่งตัดทุกครั้งนะงับ ♡',
+    announcement = '📢 หากต้องการสั่งตัดต่อแบบ "เมลลูกค้า (เมลตัวเอง)" รบกวนทัก LINE ทางร้านแทนนะงับ ♡',
     bannerUrl = '/images/banner.jpg',
     logoUrl = '/images/logo.jpg',
     lineUrl = 'https://line.me/ti/p/~@bastore',
@@ -20,10 +20,23 @@ export default function HeaderBanner({ storeSettings }) {
 
       {/* 1. Top Announcement Bar (Matching Screenshot Exactly) */}
       {announcement && (
-        <div className="bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500 text-white text-[11px] sm:text-xs md:text-sm py-2 px-4 text-center font-medium shadow-xs flex items-center justify-center gap-1.5 overflow-hidden rounded-t-2xl sm:rounded-t-3xl">
+        <a
+          href="https://line.me/R/ti/p/@bastore"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            const cleanId = (lineId || '@bastore').replace(/^@/, '');
+            const targetUrl = lineUrl && !lineUrl.includes('~') 
+              ? lineUrl 
+              : `https://line.me/R/ti/p/@${cleanId}`;
+            window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            e.preventDefault();
+          }}
+          className="bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500 text-white text-[11px] sm:text-xs md:text-sm py-2 px-4 text-center font-medium shadow-xs flex items-center justify-center gap-1.5 overflow-hidden rounded-t-2xl sm:rounded-t-3xl hover:opacity-95 transition-opacity cursor-pointer"
+        >
           <Sparkles className="w-3.5 h-3.5 shrink-0 animate-pulse text-yellow-200" />
           <span className="truncate tracking-wide">{announcement}</span>
-        </div>
+        </a>
       )}
 
       {/* 2. Cover Banner Graphic Box (Never clips logo below) */}

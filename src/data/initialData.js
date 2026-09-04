@@ -23,7 +23,7 @@ export const DEFAULT_STORE_SETTINGS = {
   description: "ขายส่งแอพพรีเมี่ยมราคาถูกม๊ากก 💖",
   subDescription: "โยนหรือใช้เองก็ได้ไม่บวกเพิ่ม ได้วันใช้งานครบแน่นอน",
   openingHours: "เปิด 09:00 - 23:00 น.",
-  announcement: "⚡ จัดส่งรวดเร็วทันใจภายใน 5 - 15 นาที • รับประกันดูแลตลอดการใช้งาน",
+  announcement: "📢 หากต้องการสั่งตัดต่อแบบ \"เมลลูกค้า (เมลตัวเอง)\" รบกวนทัก LINE ทางร้านแทนนะงับ ♡",
   
   bannerUrl: "/images/banner.jpg",
   bannerFit: "auto",
@@ -76,8 +76,7 @@ export const DEFAULT_PRODUCTS = [
     icon: APP_ICONS.iqiyi,
     inStock: true,
     prices: [
-      { id: "price-1", label: "เมลล์ลูกค้า", price: "206", period: "90 วัน", note: "ใช้อีเมลของคุณเอง ส่งให้ทางร้านตัด" },
-      { id: "price-2", label: "เมลล์ร้าน", price: "209", period: "90 วัน", note: "ทางร้านจัดส่งเมลพร้อมรหัสให้ทันที" }
+      { id: "price-2", label: "เมลล์ร้าน (90 วัน)", price: "209", period: "90 วัน", note: "ทางร้านจัดส่งเมลพร้อมรหัสให้ทันที" }
     ]
   },
   {
@@ -93,8 +92,7 @@ export const DEFAULT_PRODUCTS = [
     icon: APP_ICONS.iqiyi,
     inStock: true,
     prices: [
-      { id: "price-1", label: "เมลล์ลูกค้า", price: "56", period: "30 วัน", note: "ใช้อีเมลของคุณเอง ส่งให้ทางร้านตัด" },
-      { id: "price-2", label: "เมลล์ร้าน", price: "59", period: "30 วัน", note: "ทางร้านจัดส่งเมลพร้อมรหัสให้ทันที" }
+      { id: "price-2", label: "เมลล์ร้าน (30 วัน)", price: "59", period: "30 วัน", note: "ทางร้านจัดส่งเมลพร้อมรหัสให้ทันที" }
     ]
   },
   {
@@ -110,8 +108,7 @@ export const DEFAULT_PRODUCTS = [
     icon: APP_ICONS.iqiyi,
     inStock: true,
     prices: [
-      { id: "price-1", label: "เมลล์ลูกค้า", price: "15", period: "7 วัน", note: "ใช้อีเมลของคุณเอง ส่งให้ทางร้านตัด" },
-      { id: "price-2", label: "เมลล์ร้าน", price: "15", period: "7 วัน", note: "ทางร้านจัดส่งเมลพร้อมรหัสให้ทันที" }
+      { id: "price-2", label: "เมลล์ร้าน (7 วัน)", price: "15", period: "7 วัน", note: "ทางร้านจัดส่งเมลพร้อมรหัสให้ทันที" }
     ]
   },
   {
@@ -127,9 +124,7 @@ export const DEFAULT_PRODUCTS = [
     icon: APP_ICONS.youtube,
     inStock: true,
     prices: [
-      { id: "price-1", label: "ปลดยืนยันสิทธิ์", price: "7", period: "ครั้ง", note: "สำหรับคนสิทธิ์เต็ม ปลดสิทธิ์ครอบครัวเดิม" },
-      { id: "price-2", label: "ตัดพรีเมี่ยมเมลล์ลูกค้า", price: "10", period: "เดือน", note: "ต่ออายุ YouTube Premium เข้าอีเมลลูกค้า" },
-      { id: "price-3", label: "ปลดยืนยันสิทธิ์ + ตัดพรีเมี่ยม", price: "14", period: "เดือน", note: "คอมโบสุดคุ้ม ปลดสิทธิ์และตัดพรีเมี่ยมพร้อมกัน" }
+      { id: "price-1", label: "ปลดยืนยันสิทธิ์ (ส่งโค้ด)", price: "7", period: "ครั้ง", note: "สำหรับคนสิทธิ์เต็ม ปลดสิทธิ์ครอบครัวเดิม" }
     ]
   },
   {
@@ -214,8 +209,7 @@ export const DEFAULT_PRODUCTS = [
     icon: APP_ICONS.wetv,
     inStock: true,
     prices: [
-      { id: "price-1", label: "เมลล์ร้าน 30 วัน", price: "45", period: "30 วัน", note: "จัดส่งเมลและรหัสพร้อมใช้งานทันที" },
-      { id: "price-2", label: "เมลล์ลูกค้า 30 วัน", price: "40", period: "30 วัน", note: "ใช้อีเมลของคุณเอง ส่งให้ทางร้านตัด" }
+      { id: "price-1", label: "เมลล์ร้าน 30 วัน", price: "45", period: "30 วัน", note: "จัดส่งเมลและรหัสพร้อมใช้งานทันที" }
     ]
   },
   {
