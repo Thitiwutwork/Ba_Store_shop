@@ -83,22 +83,42 @@ function saveData(key, data) {
   }
 }
 
-// Cloud sync helper (pushes to store_data and relational tables)
+// Cloud sync helper (pushes to ba_store_data and dedicated relational ba_* tables)
 async function syncToCloud(key, data) {
   if (!isSupabaseConfigured()) return;
   const client = getSupabaseClient();
   if (!client) return;
 
   try {
-    // 1. Primary sync to store_data table
-    await client.from('store_data').upsert({
+    // 1. Primary sync to dedicated ba_store_data table
+    const { error: baErr } = await client.from('ba_store_data').upsert({
       key,
       data,
       updated_at: new Date().toISOString()
     }, { onConflict: 'key' });
 
-    // 2. Dual-write to relational tables if matching
-    if (key === 'products' && Array.isArray(data)) {
+    // Fallback to store_data if ba_store_data not yet created
+    if (baErr) {
+      await client.from('store_data').upsert({
+        key,
+        data,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' }).catch(() => {});
+    }
+
+    // 2. Dual-write to dedicated relational tables (ba_*)
+    if (key === 'users' && Array.isArray(data)) {
+      const rows = data.map((u) => ({
+        id: u.id || `usr-${Date.now()}`,
+        email: u.email,
+        password: u.password,
+        display_name: u.displayName,
+        wallet_balance: parseFloat(u.walletBalance) || 0.00,
+        role: u.role || 'user',
+        updated_at: new Date().toISOString()
+      }));
+      await client.from('ba_users').upsert(rows, { onConflict: 'email' }).catch(() => {});
+    } else if (key === 'products' && Array.isArray(data)) {
       const rows = data.map((p, idx) => ({
         id: p.id,
         name: p.name || '',
@@ -115,7 +135,22 @@ async function syncToCloud(key, data) {
         sort_order: typeof idx === 'number' ? idx : 0,
         updated_at: new Date().toISOString()
       }));
-      await client.from('products').upsert(rows, { onConflict: 'id' });
+      await client.from('ba_products').upsert(rows, { onConflict: 'id' }).catch(() => {});
+    } else if (key === 'orders' && Array.isArray(data)) {
+      const rows = data.map((o) => ({
+        id: o.id || `ord-${Date.now()}`,
+        order_no: o.orderNo,
+        user_email: o.userEmail || '',
+        user_id: o.userId || '',
+        product_name: o.productName,
+        tier_label: o.tierLabel || '',
+        price_paid: parseFloat(o.pricePaid) || 0,
+        delivered_credential: o.deliveredCredential || '',
+        customer_note: o.customerNote || '',
+        status: o.status || 'COMPLETED',
+        created_at: o.createdAt || new Date().toISOString()
+      }));
+      await client.from('ba_orders').upsert(rows, { onConflict: 'order_no' }).catch(() => {});
     } else if (key === 'settings' && data) {
       const row = {
         id: 'main',
@@ -133,22 +168,27 @@ async function syncToCloud(key, data) {
         admin_pin: data.adminPin || '1234',
         updated_at: new Date().toISOString()
       };
-      await client.from('store_settings').upsert([row], { onConflict: 'id' });
+      await client.from('ba_store_settings').upsert([row], { onConflict: 'id' }).catch(() => {});
     }
   } catch (err) {
     console.warn(`[Supabase Cloud] sync failed for ${key}:`, err);
   }
 }
 
-// Cloud fetch helper
+// Cloud fetch helper (tries ba_store_data first, then store_data)
 async function fetchFromCloud(key) {
   if (!isSupabaseConfigured()) return null;
   const client = getSupabaseClient();
   if (!client) return null;
   try {
-    const { data, error } = await client.from('store_data').select('data').eq('key', key).single();
+    const { data, error } = await client.from('ba_store_data').select('data').eq('key', key).single();
     if (!error && data && data.data !== undefined) {
       return data.data;
+    }
+    // Fallback to store_data
+    const { data: legacyData, error: legErr } = await client.from('store_data').select('data').eq('key', key).single();
+    if (!legErr && legacyData && legacyData.data !== undefined) {
+      return legacyData.data;
     }
   } catch (err) {
     console.warn(`[Supabase Cloud] fetch error for ${key}:`, err);
@@ -1244,10 +1284,18 @@ export async function initCloudSync(onSyncCallback) {
   const client = getSupabaseClient();
   if (!client) return () => {};
 
-  // 1. Initial Pull: Fetch all store records from Supabase Cloud
+  // 1. Initial Pull: Try ba_store_data first, fallback to store_data
   try {
-    const { data: rows, error } = await client.from('store_data').select('*');
-    if (!error && Array.isArray(rows)) {
+    let rows = null;
+    const { data: baRows, error: baErr } = await client.from('ba_store_data').select('*');
+    if (!baErr && Array.isArray(baRows) && baRows.length > 0) {
+      rows = baRows;
+    } else {
+      const { data: legacyRows } = await client.from('store_data').select('*');
+      if (Array.isArray(legacyRows)) rows = legacyRows;
+    }
+
+    if (Array.isArray(rows)) {
       rows.forEach((row) => {
         if (!row.key || row.data === undefined) return;
         const localKey = CLOUD_TO_KEY_MAP[row.key];
@@ -1260,10 +1308,35 @@ export async function initCloudSync(onSyncCallback) {
       });
     }
 
-    // 2. Fallback check for relational products if store_data was empty
+    // 2. Check dedicated ba_users table for any users registered directly in table
+    const { data: baUsers } = await client.from('ba_users').select('*');
+    if (Array.isArray(baUsers) && baUsers.length > 0) {
+      const currentUsers = loadData(STORAGE_KEYS.USERS, []);
+      baUsers.forEach((bu) => {
+        const idx = currentUsers.findIndex((u) => u.email.toLowerCase() === bu.email.toLowerCase());
+        const userObj = {
+          id: bu.id,
+          email: bu.email,
+          password: bu.password,
+          displayName: bu.display_name || bu.email.split('@')[0],
+          role: bu.role || 'user',
+          walletBalance: parseFloat(bu.wallet_balance) || 0.00,
+          createdAt: bu.created_at
+        };
+        if (idx !== -1) {
+          currentUsers[idx] = { ...currentUsers[idx], ...userObj };
+        } else {
+          currentUsers.push(userObj);
+        }
+      });
+      saveDataLocalOnly(STORAGE_KEYS.USERS, currentUsers);
+      if (onSyncCallback) onSyncCallback({ key: 'users', data: currentUsers });
+    }
+
+    // 3. Fallback check for relational products if empty
     const currentProds = loadData(STORAGE_KEYS.PRODUCTS, null);
     if (!currentProds || currentProds.length === 0) {
-      const { data: remoteProds } = await client.from('products').select('*').order('sort_order', { ascending: true });
+      const { data: remoteProds } = await client.from('ba_products').select('*').order('sort_order', { ascending: true });
       if (remoteProds && remoteProds.length > 0) {
         const mapped = remoteProds.map((r, idx) => ({
           id: r.id,
@@ -1288,10 +1361,10 @@ export async function initCloudSync(onSyncCallback) {
     console.warn('[Supabase Cloud] Initial sync fetch error:', err);
   }
 
-  // 3. Realtime WebSocket: Listen for live changes from other devices/tabs
+  // 4. Realtime WebSocket: Listen for live changes on ba_store_data and store_data
   try {
     const channel = client.channel('ba_store_cloud_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_data' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ba_store_data' }, (payload) => {
         if (payload.new && payload.new.key) {
           const cloudKey = payload.new.key;
           const cloudData = payload.new.data;
@@ -1302,6 +1375,25 @@ export async function initCloudSync(onSyncCallback) {
               onSyncCallback({ key: cloudKey, data: cloudData, eventType: payload.eventType });
             }
           }
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ba_users' }, (payload) => {
+        if (payload.new && payload.new.email) {
+          const users = getUsers();
+          const bu = payload.new;
+          const idx = users.findIndex((u) => u.email.toLowerCase() === bu.email.toLowerCase());
+          const userObj = {
+            id: bu.id,
+            email: bu.email,
+            password: bu.password,
+            displayName: bu.display_name,
+            role: bu.role,
+            walletBalance: parseFloat(bu.wallet_balance) || 0.00
+          };
+          if (idx !== -1) users[idx] = userObj;
+          else users.push(userObj);
+          saveDataLocalOnly(STORAGE_KEYS.USERS, users);
+          if (onSyncCallback) onSyncCallback({ key: 'users', data: users });
         }
       })
       .subscribe();
