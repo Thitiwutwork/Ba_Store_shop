@@ -87,10 +87,21 @@ export function initWebsiteSecurity() {
     true
   );
 
+  // Helper to detect mobile/tablet devices
+  const isMobile = () => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    const isMobileUA = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    return isMobileUA || isIPadOS || (hasTouch && window.innerWidth < 1024);
+  };
+
   // 4. Anti-DevTools Active Debugger Trap & Recursive Breakpoint Loop
   // When DevTools is closed, this statement runs in microseconds without effect.
   // When DevTools is opened, this statement halts the browser in an inescapable breakpoint loop!
   const activateDebuggerTrap = () => {
+    if (isMobile()) return; // Never run debugger traps on mobile devices
     try {
       (function () {
         return false;
@@ -98,13 +109,16 @@ export function initWebsiteSecurity() {
     } catch (_) {}
   };
 
-  // Run periodic debugger checks
-  setInterval(activateDebuggerTrap, 150);
+  // Run periodic debugger checks (only on desktop)
+  if (!isMobile()) {
+    setInterval(activateDebuggerTrap, 500);
+  }
 
   // 5. DevTools Open Detection via Dimension & Full-Screen Lockdown Mask
   let isDevToolsOpen = false;
 
   const showLockdownScreen = () => {
+    if (isMobile()) return; // Never show lockdown on mobile devices
     if (document.getElementById('anti-devtools-lockdown')) return;
     const overlay = document.createElement('div');
     overlay.id = 'anti-devtools-lockdown';
@@ -132,7 +146,7 @@ export function initWebsiteSecurity() {
         เพื่อความปลอดภัยของข้อมูลและการป้องกันการดัดแปลงโค้ด เว็บไซต์นี้ไม่อนุญาตให้เปิด Inspect หรือ DevTools<br/>
         กรุณาปิดแถบเครื่องมือผู้พัฒนาเพื่อใช้งานเว็บไซต์ตามปกติ
       </p>
-      <div style="font-size: 12px; color: #64748b; background: rgba(255,255,255,0.05); padding: 8px 16px; rounded: 12px; border: 1px solid rgba(255,255,255,0.1);">
+      <div style="font-size: 12px; color: #64748b; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
         🔒 Security Policy Enforced • BA STORE
       </div>
     `;
@@ -145,8 +159,18 @@ export function initWebsiteSecurity() {
   };
 
   const checkDevTools = () => {
-    const widthThreshold = window.outerWidth - window.innerWidth > 160;
-    const heightThreshold = window.outerHeight - window.innerHeight > 160;
+    // On iPhone/Android/mobile, browser toolbars & viewport scaling cause false dimension differences
+    // Skip devtools dimension check completely on mobile
+    if (isMobile()) {
+      if (isDevToolsOpen) {
+        isDevToolsOpen = false;
+        hideLockdownScreen();
+      }
+      return;
+    }
+
+    const widthThreshold = window.outerWidth - window.innerWidth > 200;
+    const heightThreshold = window.outerHeight - window.innerHeight > 200;
 
     if (widthThreshold || heightThreshold) {
       if (!isDevToolsOpen) {
@@ -162,8 +186,10 @@ export function initWebsiteSecurity() {
     }
   };
 
-  window.addEventListener('resize', checkDevTools);
-  setInterval(checkDevTools, 500);
+  if (!isMobile()) {
+    window.addEventListener('resize', checkDevTools);
+    setInterval(checkDevTools, 1000);
+  }
 
   // Periodically clear console to wipe injected scripts
   setInterval(() => {
