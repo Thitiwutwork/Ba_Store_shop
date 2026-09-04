@@ -41,6 +41,62 @@ export default async function handler(req, res) {
   const apiKey = process.env.MAILY_API_KEY || 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p';
 
   try {
+    // 1. Primary: Public Mailbox API (Enforces PIN lock and matches maily.space web behavior)
+    const [accountName, domainPart] = rawEmail.split('@');
+    if (accountName && domainPart) {
+      const domainId = domainPart.replace(/\./g, '');
+      const queryParams = new URLSearchParams({
+        accountName: accountName.toLowerCase(),
+        domainId: domainId.toLowerCase(),
+        size: String(Math.min(sizeParam, 100))
+      });
+      if (searchParam && searchParam.trim()) {
+        queryParams.set('search', searchParam.trim());
+      }
+
+      const publicUrl = `https://api.maily.space/mail/public/mails?${queryParams.toString()}`;
+      const pubHeaders = {};
+      if (rawPin) {
+        pubHeaders['X-Mailbox-Pin'] = rawPin;
+      }
+      const pubRes = await fetch(publicUrl, { headers: pubHeaders });
+
+      // PIN Challenge or Invalid PIN
+      if (pubRes.status === 403) {
+        let pubData = null;
+        try { pubData = await pubRes.json(); } catch (_) {}
+        return res.status(403).json({
+          success: false,
+          requirePin: true,
+          isPinInvalid: pubData?.message === 'PIN ไม่ถูกต้อง',
+          message: pubData?.message || 'กรุณาใส่ PIN',
+          error: pubData?.message || 'กล่องข้อความนี้ต้องใช้รหัส PIN'
+        });
+      }
+
+      if (pubRes.ok) {
+        const pubData = await pubRes.json();
+        const mailList = Array.isArray(pubData) ? pubData : (pubData?.data?.mails || pubData?.mails || []);
+        
+        return res.status(200).json({
+          success: true,
+          source: 'public_mailbox',
+          totalPage: 1,
+          currentPage: pageParam,
+          mails: mailList.map(m => ({
+            id: m.id || `mail-${Math.random().toString(36).substr(2, 9)}`,
+            from: m.from || m.sender || 'ไม่ระบุผู้ส่ง',
+            to: rawEmail,
+            subject: m.subject || '(ไม่มีหัวข้อ)',
+            html: m.html || '',
+            text: m.text || m.body || '',
+            createdAt: m.createdAt || m.date || new Date().toISOString()
+          }))
+        });
+      }
+    }
+
+    // 2. Secondary Fallback: Developer REST API (Only if public mailbox returned not found/error)
     const mailyPayload = {
       apiKey,
       email: rawEmail,
@@ -97,7 +153,6 @@ export default async function handler(req, res) {
       ? resData.data.mails
       : (Array.isArray(resData?.mails) ? resData.mails : []);
 
-    // 1. If upstream successfully found the mailbox in Maily Space
     if ((upstreamResponse.ok || resData?.statusCode === 200) && !resData?.message?.includes('ไม่ถูกต้อง')) {
       return res.status(200).json({
         success: true,
@@ -107,60 +162,6 @@ export default async function handler(req, res) {
         currentPage: resData?.data?.currentPage || resData?.currentPage || pageParam,
         mails: mailList
       });
-    }
-
-    // 2. Fallback: Public Mailbox API if REST API returns "อีเมลไม่ถูกต้อง" or 404
-    const [accountName, domainPart] = rawEmail.split('@');
-    if (accountName && domainPart) {
-      const domainId = domainPart.replace(/\./g, '');
-      const queryParams = new URLSearchParams({
-        accountName: accountName.toLowerCase(),
-        domainId: domainId.toLowerCase(),
-        size: String(Math.min(sizeParam, 100))
-      });
-      if (searchParam && searchParam.trim()) {
-        queryParams.set('search', searchParam.trim());
-      }
-
-      const publicUrl = `https://api.maily.space/mail/public/mails?${queryParams.toString()}`;
-      const pubHeaders = {};
-      if (rawPin) {
-        pubHeaders['X-Mailbox-Pin'] = rawPin;
-      }
-      const pubRes = await fetch(publicUrl, { headers: pubHeaders });
-
-      if (pubRes.status === 403) {
-        let pubData = null;
-        try { pubData = await pubRes.json(); } catch (_) {}
-        return res.status(403).json({
-          success: false,
-          requirePin: true,
-          isPinInvalid: pubData?.message === 'PIN ไม่ถูกต้อง',
-          message: pubData?.message || 'กรุณาใส่ PIN',
-          error: pubData?.message || 'กล่องข้อความนี้ต้องใช้รหัส PIN'
-        });
-      }
-
-      if (pubRes.ok) {
-        const pubData = await pubRes.json();
-        const mailList = Array.isArray(pubData) ? pubData : (pubData?.data || pubData?.mails || []);
-        
-        return res.status(200).json({
-          success: true,
-          source: 'public_mailbox',
-          totalPage: 1,
-          currentPage: pageParam,
-          mails: mailList.map(m => ({
-            id: m.id || `mail-${Math.random().toString(36).substr(2, 9)}`,
-            from: m.from || m.sender || 'ไม่ระบุผู้ส่ง',
-            to: rawEmail,
-            subject: m.subject || '(ไม่มีหัวข้อ)',
-            html: m.html || '',
-            text: m.text || m.body || '',
-            createdAt: m.createdAt || m.date || new Date().toISOString()
-          }))
-        });
-      }
     }
 
     // If both failed, return a friendly message based on upstream response
