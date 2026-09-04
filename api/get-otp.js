@@ -38,77 +38,48 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.MAILY_API_KEY || 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p';
 
-  // Smart variant resolution for common OCR / typing confusion (0 vs o, 1 vs l)
-  const variants = [rawEmail];
-  const [localPart, domainPart] = rawEmail.split('@');
-  if (localPart && domainPart) {
-    if (localPart.includes('o')) variants.push(localPart.replace(/o/g, '0') + '@' + domainPart);
-    if (localPart.includes('0')) variants.push(localPart.replace(/0/g, 'o') + '@' + domainPart);
-    if (localPart.includes('l')) variants.push(localPart.replace(/l/g, '1') + '@' + domainPart);
-    if (localPart.includes('1')) variants.push(localPart.replace(/1/g, 'l') + '@' + domainPart);
-    if (localPart.includes('o') && localPart.includes('l')) {
-      variants.push(localPart.replace(/o/g, '0').replace(/l/g, '1') + '@' + domainPart);
-    }
-  }
-
   try {
-    let lastMails = [];
-    let lastResData = null;
-    let resolvedEmail = rawEmail;
-
-    // Try all smart variants
-    for (const testEmail of [...new Set(variants)]) {
-      const mailyPayload = {
-        apiKey,
-        email: testEmail,
-        size: Math.min(sizeParam, 100),
-        page: pageParam
-      };
-      if (searchParam && searchParam.trim()) {
-        mailyPayload.search = searchParam.trim();
-      }
-
-      const upstreamResponse = await fetch('https://api.maily.space/v1/mails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*'
-        },
-        body: JSON.stringify(mailyPayload)
-      });
-
-      const textData = await upstreamResponse.text();
-      let resData = null;
-      try {
-        resData = JSON.parse(textData);
-      } catch (e) {
-        console.error('Non-JSON response from Maily Space:', textData?.slice(0, 200));
-      }
-
-      lastResData = resData;
-      const mailList = Array.isArray(resData?.data?.mails)
-        ? resData.data.mails
-        : (Array.isArray(resData?.mails) ? resData.mails : []);
-
-      // Check if upstream confirmed the email exists in Maily Space (status 200/201 or statusCode 200)
-      if ((upstreamResponse.ok || resData?.statusCode === 200) && resData && !resData.message?.includes('ไม่ถูกต้อง')) {
-        lastMails = mailList;
-        resolvedEmail = testEmail;
-        // Stop immediately! If this email exists, DO NOT check other variants to prevent cross-account leak
-        break;
-      }
+    const mailyPayload = {
+      apiKey,
+      email: rawEmail,
+      size: Math.min(sizeParam, 100),
+      page: pageParam
+    };
+    if (searchParam && searchParam.trim()) {
+      mailyPayload.search = searchParam.trim();
     }
 
-    // If upstream confirmed the mailbox exists in Maily Space (even if 0 mails received yet)
-    if (lastResData?.statusCode === 200 || (lastMails && lastMails.length > 0)) {
+    const upstreamResponse = await fetch('https://api.maily.space/v1/mails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*'
+      },
+      body: JSON.stringify(mailyPayload)
+    });
+
+    const textData = await upstreamResponse.text();
+    let resData = null;
+    try {
+      resData = JSON.parse(textData);
+    } catch (e) {
+      console.error('Non-JSON response from Maily Space:', textData?.slice(0, 200));
+    }
+
+    const mailList = Array.isArray(resData?.data?.mails)
+      ? resData.data.mails
+      : (Array.isArray(resData?.mails) ? resData.mails : []);
+
+    // 1. If upstream successfully found the mailbox in Maily Space
+    if ((upstreamResponse.ok || resData?.statusCode === 200) && !resData?.message?.includes('ไม่ถูกต้อง')) {
       return res.status(200).json({
         success: true,
         source: 'v1_api',
-        resolvedEmail,
-        totalPage: lastResData?.data?.totalPage || lastResData?.totalPage || 1,
-        currentPage: lastResData?.data?.currentPage || lastResData?.currentPage || pageParam,
-        mails: lastMails
+        resolvedEmail: rawEmail,
+        totalPage: resData?.data?.totalPage || resData?.totalPage || 1,
+        currentPage: resData?.data?.currentPage || resData?.currentPage || pageParam,
+        mails: mailList
       });
     }
 

@@ -156,8 +156,18 @@ export default function Navbar({
             </div>
           ) : (
             <button
-              onClick={onOpenAuth}
-              className="px-3.5 py-1.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5"
+              onClick={() => {
+                if (currentTab === 'login') {
+                  onOpenAuth();
+                } else {
+                  onSelectTab('login');
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-2xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                currentTab === 'login'
+                  ? 'bg-rose-500 text-white border-rose-600 shadow-xs'
+                  : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
+              }`}
             >
               <LogIn className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">เข้าสู่ระบบ / สมัคร</span>

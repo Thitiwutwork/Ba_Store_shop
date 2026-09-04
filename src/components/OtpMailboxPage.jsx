@@ -107,21 +107,6 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
     }
   };
 
-  // Generate smart variants for common zero/O and 1/l confusion
-  const getEmailVariants = (raw) => {
-    const clean = raw.trim().toLowerCase();
-    const list = [clean];
-    const [name, domain] = clean.split('@');
-    if (name && domain) {
-      if (name.includes('o')) list.push(name.replace(/o/g, '0') + '@' + domain);
-      if (name.includes('0')) list.push(name.replace(/0/g, 'o') + '@' + domain);
-      if (name.includes('l')) list.push(name.replace(/l/g, '1') + '@' + domain);
-      if (name.includes('1')) list.push(name.replace(/1/g, 'l') + '@' + domain);
-      if (name.includes('o') && name.includes('l')) list.push(name.replace(/o/g, '0').replace(/l/g, '1') + '@' + domain);
-    }
-    return [...new Set(list)];
-  };
-
   // Fetch Mails: Dual Strategy (Serverless Proxy -> Direct Client Fallback)
   const fetchMails = async (targetEmail, isSilent = false) => {
     const clean = (targetEmail || emailInput).trim().toLowerCase();
@@ -138,12 +123,9 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
       setWarningMessage('');
     }
 
-    const variants = getEmailVariants(clean);
     let fetchedMails = null;
-    let matchedEmail = clean;
-    let failureMsg = '';
 
-    // 1. Try secure Serverless Proxy /api/get-otp
+    // 1. Try secure Serverless Proxy /api/get-otp (strictly exact match)
     try {
       const res = await fetch('/api/get-otp', {
         method: 'POST',
@@ -161,54 +143,45 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
         const data = await res.json();
         if (data && data.success && Array.isArray(data.mails)) {
           fetchedMails = data.mails;
-          if (data.resolvedEmail) matchedEmail = data.resolvedEmail;
-        } else if (data && data.error) {
-          failureMsg = data.error;
         }
       }
     } catch (err) {
       console.warn('Proxy endpoint unreached, trying direct API fallback...', err);
     }
 
-    // 2. Fallback: Direct Browser API Call to Maily Space across all variants
-    // Only attempt direct client call if proxy was completely unreached (fetchedMails === null)
+    // 2. Fallback: Direct Browser API Call to Maily Space ONLY for exact clean email
     if (fetchedMails === null) {
-      for (const variant of variants) {
-        try {
-          const directRes = await fetch('https://api.maily.space/v1/mails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
-              email: variant,
-              size: 40,
-              page: 1
-            })
-          });
+      try {
+        const directRes = await fetch('https://api.maily.space/v1/mails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
+            email: clean,
+            size: 40,
+            page: 1
+          })
+        });
 
-          const directData = await directRes.json();
-          // If Maily Space confirms this mailbox exists (status 200/201 or statusCode 200)
-          if ((directRes.ok || directData?.statusCode === 200) && directData && !directData.message?.includes('ไม่ถูกต้อง')) {
-            const list = Array.isArray(directData?.data?.mails)
-              ? directData.data.mails
-              : (Array.isArray(directData?.mails) ? directData.mails : []);
-            fetchedMails = list;
-            matchedEmail = variant;
-            break; // Stop immediately to prevent cross-account leak
-          }
-        } catch (directErr) {
-          console.error('Direct Maily Space call error:', directErr);
+        const directData = await directRes.json();
+        if ((directRes.ok || directData?.statusCode === 200) && directData) {
+          const list = Array.isArray(directData?.data?.mails)
+            ? directData.data.mails
+            : (Array.isArray(directData?.mails) ? directData.mails : []);
+          fetchedMails = list;
         }
+      } catch (directErr) {
+        console.error('Direct Maily Space call error:', directErr);
       }
     }
 
     if (fetchedMails && fetchedMails.length > 0) {
       setMails(fetchedMails);
-      setActiveEmail(matchedEmail);
-      setEmailInput(matchedEmail);
-      saveRecentEmail(matchedEmail);
+      setActiveEmail(clean);
+      setEmailInput(clean);
+      saveRecentEmail(clean);
       setLastUpdated(new Date());
       setWarningMessage('');
       if (!isSilent && onShowToast) {
@@ -216,8 +189,8 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
       }
     } else {
       setMails([]);
-      setActiveEmail(matchedEmail || clean);
-      saveRecentEmail(matchedEmail || clean);
+      setActiveEmail(clean);
+      saveRecentEmail(clean);
       setLastUpdated(new Date());
       setWarningMessage('ยังไม่มีข้อความเข้าในกล่องจดหมายนี้ (หากเพิ่งขอ OTP กรุณารอสักครู่แล้วกดรีเฟรช)');
     }
@@ -282,33 +255,28 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       
-      {/* Top Breadcrumb & Return to Store */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => onSwitchTab && onSwitchTab('store')}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-600 hover:text-rose-600 transition-colors bg-white px-3.5 py-2 rounded-2xl border border-pink-100 shadow-2xs cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>กลับหน้าหลักร้านค้า</span>
-        </button>
-
-        {lastUpdated && (
-          <div className="text-[11px] text-gray-400 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
+      {/* Top Status */}
+      {lastUpdated && (
+        <div className="flex items-center justify-end">
+          <div className="text-[11px] text-gray-400 flex items-center gap-1.5 bg-white/80 px-3.5 py-1.5 rounded-full border border-pink-100 shadow-2xs">
+            <Clock className="w-3.5 h-3.5 text-pink-400" />
             <span>อัปเดตล่าสุด: {lastUpdated.toLocaleTimeString('th-TH')}</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Main Mailbox Search Card (Styled matching screenshot) */}
+      {/* Main Mailbox Search Card (Styled matching store theme) */}
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-pink-100 shadow-sm text-center space-y-6 relative overflow-hidden">
         
         {/* Subtle decorative glow */}
         <div className="absolute -top-16 -right-16 w-36 h-36 bg-pink-100/50 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-rose-100/50 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Title */}
-        <div className="space-y-1.5 relative">
+        {/* Title & Store Logo */}
+        <div className="space-y-2 relative">
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xs ring-2 ring-pink-200 bg-white mx-auto flex items-center justify-center">
+            <img src="/images/logo.jpg" alt="BA STORE" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+          </div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 text-pink-600 text-xs font-bold border border-pink-100 mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             <span>ระบบดึงรหัส OTP อัตโนมัติ 24 ชม.</span>
@@ -321,7 +289,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
           </p>
         </div>
 
-        {/* Search Input Bar matching screenshot */}
+        {/* Search Input Bar matching store theme */}
         <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto flex flex-col sm:flex-row items-stretch gap-2.5">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
@@ -332,7 +300,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="example@rdcw.plus"
-              className="w-full pl-10 pr-4 py-3 sm:py-3.5 bg-gray-50/70 hover:bg-white focus:bg-white border border-gray-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 rounded-2xl text-sm sm:text-base font-mono tracking-wide text-gray-800 transition-all outline-none"
+              className="w-full pl-10 pr-4 py-3 sm:py-3.5 bg-gray-50/70 hover:bg-white focus:bg-white border border-gray-300 focus:border-pink-500 focus:ring-4 focus:ring-pink-100 rounded-2xl text-sm sm:text-base font-mono tracking-wide text-gray-800 transition-all outline-none"
             />
             {emailInput && (
               <button
@@ -348,7 +316,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
           <button
             type="submit"
             disabled={isLoading}
-            className="px-6 py-3 sm:py-3.5 rounded-2xl bg-[#3b49df] hover:bg-[#2f3cb3] active:scale-98 text-white font-bold text-sm sm:text-base shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+            className="px-7 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:opacity-95 active:scale-98 text-white font-bold text-sm sm:text-base shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -378,7 +346,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
                 }}
                 className={`group px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 border ${
                   activeEmail === item
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200 font-bold'
+                    ? 'bg-pink-50 text-rose-600 border-pink-200 font-bold'
                     : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200/80 border-gray-200'
                 }`}
               >
@@ -427,7 +395,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
                   <span className="font-bold text-gray-800 text-sm sm:text-base">
                     กล่องจดหมายของ:
                   </span>
-                  <span className="font-mono text-indigo-700 font-bold text-xs sm:text-sm bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                  <span className="font-mono text-rose-600 font-bold text-xs sm:text-sm bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-200">
                     {activeEmail}
                   </span>
                 </div>

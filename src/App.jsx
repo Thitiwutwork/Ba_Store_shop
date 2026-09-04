@@ -11,8 +11,23 @@ import OrderHistoryPage from './components/OrderHistoryPage';
 import OtpMailboxPage from './components/OtpMailboxPage';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
+import LoginPage from './components/LoginPage';
 import Toast from './components/Toast';
 import { MessageCircle } from 'lucide-react';
+
+const getInitialTabFromUrl = () => {
+  try {
+    const path = (window.location.pathname || '').toLowerCase().replace(/\/$/, '') || '/';
+    if (path === '/store') return 'store';
+    if (path === '/topup') return 'topup';
+    if (path === '/orders') return 'orders';
+    if (path === '/admin') return 'admin';
+    if (path === '/' || path === '/login') return 'login';
+  } catch (e) {
+    console.error(e);
+  }
+  return 'login';
+};
 
 import {
   getStoreSettings,
@@ -41,8 +56,8 @@ import {
 } from './services/storageService';
 
 export default function App() {
-  // Navigation State
-  const [currentTab, setCurrentTab] = useState('store'); // 'store' | 'topup' | 'orders' | 'otp' | 'admin'
+  // Navigation State (URL-aware: / -> login, /store -> store, etc.)
+  const [currentTab, setCurrentTab] = useState(getInitialTabFromUrl);
   const [otpEmailQuery, setOtpEmailQuery] = useState('');
 
   // User & Auth State
@@ -112,11 +127,34 @@ export default function App() {
     setWalletBalanceState(getWalletBalance());
   }, [currentUser]);
 
-  // Switch tab helper with smooth scroll
-  const handleSelectTab = (tab) => {
+  // Switch tab helper with URL sync & smooth scroll
+  const handleSelectTab = (tab, replace = false) => {
     setCurrentTab(tab);
+    const targetPath = tab === 'login' ? '/' : `/${tab}`;
+    if (window.location.pathname !== targetPath) {
+      if (replace) {
+        window.history.replaceState(null, '', targetPath);
+      } else {
+        window.history.pushState(null, '', targetPath);
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Browser back/forward history navigation sync
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = (window.location.pathname || '').toLowerCase().replace(/\/$/, '') || '/';
+      if (path === '/store') setCurrentTab('store');
+      else if (path === '/topup') setCurrentTab('topup');
+      else if (path === '/orders') setCurrentTab('orders');
+      else if (path === '/admin') setCurrentTab('admin');
+      else if (path === '/' || path === '/login') setCurrentTab('login');
+      else setCurrentTab('store');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleGoToOtp = (email = '') => {
     const url = email ? `/otp?email=${encodeURIComponent(email)}` : '/otp';
@@ -127,12 +165,15 @@ export default function App() {
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
     setWalletBalanceState(getWalletBalance());
+    // Auto-navigate to /store on login/register success
+    handleSelectTab('store');
   };
 
   const handleLogout = () => {
     logoutUser();
     setCurrentUser(null);
     showToast('👋 ออกจากระบบเรียบร้อยแล้ว', 'ℹ️');
+    handleSelectTab('login');
   };
 
   // Purchase Execution
@@ -307,6 +348,18 @@ export default function App() {
       {/* Main App Body */}
       <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-6 w-full flex-1">
         
+        {/* TAB 0: LOGIN & REGISTER PAGE (ROOT /) */}
+        {currentTab === 'login' && (
+          <LoginPage
+            storeSettings={storeSettings}
+            currentUser={currentUser}
+            onLoginSuccess={handleAuthSuccess}
+            onGoToStore={() => handleSelectTab('store')}
+            onLogout={handleLogout}
+            onShowToast={showToast}
+          />
+        )}
+
         {/* TAB 1: STOREFRONT */}
         {currentTab === 'store' && (
           <div className="space-y-6 sm:space-y-8">
