@@ -91,15 +91,17 @@ export default async function handler(req, res) {
         ? resData.data.mails
         : (Array.isArray(resData?.mails) ? resData.mails : []);
 
-      if (mailList.length > 0) {
+      // Check if upstream confirmed the email exists in Maily Space (status 200/201 or statusCode 200)
+      if ((upstreamResponse.ok || resData?.statusCode === 200) && resData && !resData.message?.includes('ไม่ถูกต้อง')) {
         lastMails = mailList;
         resolvedEmail = testEmail;
+        // Stop immediately! If this email exists, DO NOT check other variants to prevent cross-account leak
         break;
       }
     }
 
-    // If mails were found in any variant
-    if (lastMails.length > 0) {
+    // If upstream confirmed the mailbox exists in Maily Space (even if 0 mails received yet)
+    if (lastResData?.statusCode === 200 || (lastMails && lastMails.length > 0)) {
       return res.status(200).json({
         success: true,
         source: 'v1_api',

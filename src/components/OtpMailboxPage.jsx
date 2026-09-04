@@ -159,7 +159,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
 
       if (res.ok) {
         const data = await res.json();
-        if (data && data.success && Array.isArray(data.mails) && data.mails.length > 0) {
+        if (data && data.success && Array.isArray(data.mails)) {
           fetchedMails = data.mails;
           if (data.resolvedEmail) matchedEmail = data.resolvedEmail;
         } else if (data && data.error) {
@@ -171,7 +171,8 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
     }
 
     // 2. Fallback: Direct Browser API Call to Maily Space across all variants
-    if (!fetchedMails || fetchedMails.length === 0) {
+    // Only attempt direct client call if proxy was completely unreached (fetchedMails === null)
+    if (fetchedMails === null) {
       for (const variant of variants) {
         try {
           const directRes = await fetch('https://api.maily.space/v1/mails', {
@@ -188,15 +189,14 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
           });
 
           const directData = await directRes.json();
-          if (directRes.ok && directData) {
+          // If Maily Space confirms this mailbox exists (status 200/201 or statusCode 200)
+          if ((directRes.ok || directData?.statusCode === 200) && directData && !directData.message?.includes('ไม่ถูกต้อง')) {
             const list = Array.isArray(directData?.data?.mails)
               ? directData.data.mails
               : (Array.isArray(directData?.mails) ? directData.mails : []);
-            if (list.length > 0) {
-              fetchedMails = list;
-              matchedEmail = variant;
-              break;
-            }
+            fetchedMails = list;
+            matchedEmail = variant;
+            break; // Stop immediately to prevent cross-account leak
           }
         } catch (directErr) {
           console.error('Direct Maily Space call error:', directErr);
@@ -216,8 +216,8 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
       }
     } else {
       setMails([]);
-      setActiveEmail(clean);
-      saveRecentEmail(clean);
+      setActiveEmail(matchedEmail || clean);
+      saveRecentEmail(matchedEmail || clean);
       setLastUpdated(new Date());
       setWarningMessage('ยังไม่มีข้อความเข้าในกล่องจดหมายนี้ (หากเพิ่งขอ OTP กรุณารอสักครู่แล้วกดรีเฟรช)');
     }
