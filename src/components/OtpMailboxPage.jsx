@@ -22,8 +22,8 @@ import {
 function extractOtpFromMail(mail) {
   if (!mail) return null;
   const subject = mail.subject || '';
-  const text = mail.text || '';
-  const fullContent = `${subject} ${text}`;
+  const text = mail.text || mail.searchText || mail.snippet || '';
+  const fullContent = `${subject} ${text}`.replace(/[\u00a0\u200b\u200c\u200d]/g, ' ');
 
   // 1. Check for explicit keywords like "code is 123456", "OTP: 123456", "รหัสยืนยัน: 123456"
   const keywordRegex = /(?:otp|code|verification|verification code|security code|passcode|pin|รหัส|รหัสยืนยัน|รหัสชั่วคราว|รหัสความปลอดภัย)[\s:：\-–—isareคือได้แก่]*([0-9]{4,8})\b/i;
@@ -33,7 +33,7 @@ function extractOtpFromMail(mail) {
   }
 
   // 1b. Check for number followed by keyword e.g. "060159 คือรหัส OTP", "123456 is your code"
-  const revRegex = /\b([0-9]{4,8})[\s\u00a0:：\-–—isareคือได้แก่]*(?:otp|code|verification|รหัส|ยืนยัน)/i;
+  const revRegex = /\b([0-9]{4,8})[\s:：\-–—isareคือได้แก่]*(?:otp|code|verification|รหัส|ยืนยัน)/i;
   const revMatch = fullContent.match(revRegex);
   if (revMatch && revMatch[1]) {
     return revMatch[1];
@@ -125,55 +125,93 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
 
     let fetchedMails = null;
 
-    // 1. Try secure Serverless Proxy /api/get-otp (strictly exact match)
+    // Tier 1: Direct Browser API Call to Maily Space REST API
+    // Maily Space sends Access-Control-Allow-Origin: * so browsers can call it directly.
+    // Client browser has real residential IP, avoiding Cloudflare 403 blocks against AWS/Vercel servers.
     try {
-      const res = await fetch('/api/get-otp', {
+      const directRes = await fetch('https://api.maily.space/v1/mails', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/plain, */*'
         },
         body: JSON.stringify({
+          apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
           email: clean,
           size: 40,
           page: 1
         })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && Array.isArray(data.mails)) {
-          fetchedMails = data.mails;
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        const list = Array.isArray(directData?.data?.mails)
+          ? directData.data.mails
+          : (Array.isArray(directData?.mails) ? directData.mails : []);
+        if (list.length > 0) {
+          fetchedMails = list;
+        } else if (directData?.statusCode === 200 || directRes.status === 200 || directRes.status === 201) {
+          fetchedMails = [];
         }
       }
-    } catch (err) {
-      console.warn('Proxy endpoint unreached, trying direct API fallback...', err);
+    } catch (directErr) {
+      console.warn('Tier 1 direct fetch error:', directErr);
     }
 
-    // 2. Fallback: Direct Browser API Call to Maily Space ONLY for exact clean email
-    if (fetchedMails === null) {
+    // Tier 2: Direct Browser Call to Public Mailbox API (exact same endpoint maily.space web uses)
+    if (!fetchedMails || fetchedMails.length === 0) {
       try {
-        const directRes = await fetch('https://api.maily.space/v1/mails', {
+        const [accountName, domainPart] = clean.split('@');
+        if (accountName && domainPart) {
+          const domainId = domainPart.replace(/\./g, '');
+          const pubUrl = `https://api.maily.space/mail/public/mails?accountName=${encodeURIComponent(accountName)}&domainId=${encodeURIComponent(domainId)}&size=40`;
+          const pubRes = await fetch(pubUrl);
+          if (pubRes.ok) {
+            const pubData = await pubRes.json();
+            const list = Array.isArray(pubData?.data?.mails)
+              ? pubData.data.mails
+              : (Array.isArray(pubData?.mails) ? pubData.mails : (Array.isArray(pubData) ? pubData : []));
+            if (list.length > 0) {
+              fetchedMails = list.map((m) => ({
+                id: m.id || `mail-${Math.random().toString(36).substr(2, 9)}`,
+                from: m.from || m.sender || 'ไม่ระบุผู้ส่ง',
+                to: clean,
+                subject: m.subject || '(ไม่มีหัวข้อ)',
+                html: m.html || '',
+                text: m.text || m.body || m.searchText || m.snippet || '',
+                createdAt: m.createdAt || m.date || new Date().toISOString()
+              }));
+            }
+          }
+        }
+      } catch (pubErr) {
+        console.warn('Tier 2 public mailbox fetch error:', pubErr);
+      }
+    }
+
+    // Tier 3: Serverless Proxy /api/get-otp (fallback)
+    if (!fetchedMails || fetchedMails.length === 0) {
+      try {
+        const res = await fetch('/api/get-otp', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
             email: clean,
             size: 40,
             page: 1
           })
         });
 
-        const directData = await directRes.json();
-        if ((directRes.ok || directData?.statusCode === 200) && directData) {
-          const list = Array.isArray(directData?.data?.mails)
-            ? directData.data.mails
-            : (Array.isArray(directData?.mails) ? directData.mails : []);
-          fetchedMails = list;
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.mails) && data.mails.length > 0) {
+            fetchedMails = data.mails;
+          }
         }
-      } catch (directErr) {
-        console.error('Direct Maily Space call error:', directErr);
+      } catch (proxyErr) {
+        console.warn('Tier 3 proxy fallback error:', proxyErr);
       }
     }
 

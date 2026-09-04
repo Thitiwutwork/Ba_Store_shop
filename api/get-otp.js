@@ -127,13 +127,7 @@ export default async function handler(req, res) {
       success: true,
       mails: [],
       warning: errorMessage,
-      message: 'ยังไม่มีข้อความเข้าในกล่องจดหมายนี้',
-      debug: {
-        upstreamStatus: upstreamResponse?.status,
-        upstreamBody: textData?.slice(0, 300),
-        apiKeyPrefix: apiKey ? apiKey.slice(0, 8) + '...' : 'none',
-        rawEmail
-      }
+      message: 'ยังไม่มีข้อความเข้าในกล่องจดหมายนี้'
     });
 
   } catch (error) {
