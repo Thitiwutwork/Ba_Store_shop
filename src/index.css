@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mitr: 'Mitr', sans-serif;
+  
+  --color-pastel-bg: #FDF5F8;
+  --color-pastel-card: #FFFFFF;
+  --color-pastel-pink: #F472B6;
+  --color-pastel-pink-dark: #EC4899;
+  --color-pastel-rose: #FB7185;
+  --color-pastel-soft-pink: #FCE7EC;
+  --color-pastel-light-pink: #FFF1F5;
+  --color-pastel-border: #F9DDE7;
+  --color-pastel-purple: #A855F7;
+  --color-pastel-purple-light: #F5EEFD;
+  --color-pastel-green: #10B981;
+  --color-pastel-green-light: #D1FAE5;
+  --color-pastel-cream: #FFFDF9;
+  --color-pastel-accent: #FF5E8E;
+  --color-pastel-dark: #2D3748;
+  --color-pastel-muted: #64748B;
+  --color-pastel-soft: #94A3B8;
+}
+
+/* Custom smooth transitions and animations */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #FDF5F8;
+  color: #374151;
+  font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar for cute look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FDF5F8;
+}
+::-webkit-scrollbar-thumb {
+  background: #F9C5D5;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #F472B6;
+}
+
+/* Glassmorphism utility */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.banner-pattern {
+  background-image: radial-gradient(rgba(244, 114, 182, 0.15) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Hide scrollbar for clean horizontal tab scrolling on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Security: Disable text selection on UI body, allow inside form inputs */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input, textarea, select {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+}
+
