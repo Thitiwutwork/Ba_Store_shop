@@ -32,6 +32,13 @@ export const DEFAULT_STORE_SETTINGS = {
   
   lineId: "@bastore",
   lineUrl: "https://line.me/R/ti/p/@bastore",
+
+  // Customer Email Cut Notice Banner on Storefront
+  showNoticeBanner: true,
+  noticeBannerTitle: 'ต้องการสั่งตัดแพ็กเกจด้วย "เมลตัวเอง (เมลลูกค้า)" ใช่ไหม?',
+  noticeBannerText: 'บนเว็บไซต์จำหน่ายเฉพาะเมลร้านพร้อมใช้และ Code เติมเอง หากต้องการตัดต่อเมลตัวเอง รบกวนทักไลน์ทางร้านแทนนะครับ',
+  noticeBannerBtnText: 'ทัก LINE สั่งตัดเมลตัวเอง',
+  noticeBannerBtnUrl: '',
   badge1Title: "ได้วันใช้งานครบ 100%",
   badge1Sub: "ของแท้ ปลอดภัย",
   badge2Title: "ใช้เวลาตัดไม่นาน",

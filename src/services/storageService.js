@@ -343,6 +343,22 @@ export function getStoreSettings() {
     settings.announcement = '📢 หากต้องการสั่งตัดต่อแบบ "เมลลูกค้า (เมลตัวเอง)" รบกวนทัก LINE ทางร้านแทนนะงับ ♡';
     updated = true;
   }
+  if (settings.showNoticeBanner === undefined) {
+    settings.showNoticeBanner = true;
+    updated = true;
+  }
+  if (!settings.noticeBannerTitle) {
+    settings.noticeBannerTitle = 'ต้องการสั่งตัดแพ็กเกจด้วย "เมลตัวเอง (เมลลูกค้า)" ใช่ไหม?';
+    updated = true;
+  }
+  if (!settings.noticeBannerText) {
+    settings.noticeBannerText = 'บนเว็บไซต์จำหน่ายเฉพาะเมลร้านพร้อมใช้และ Code เติมเอง หากต้องการตัดต่อเมลตัวเอง รบกวนทักไลน์ทางร้านแทนนะครับ';
+    updated = true;
+  }
+  if (!settings.noticeBannerBtnText) {
+    settings.noticeBannerBtnText = 'ทัก LINE สั่งตัดเมลตัวเอง';
+    updated = true;
+  }
   if (!settings.slip2goEndpoint || settings.slip2goEndpoint.trim() === '') {
     settings.slip2goEndpoint = '/api/verify-slip';
     updated = true;

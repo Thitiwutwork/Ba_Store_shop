@@ -49,6 +49,12 @@ export default function AdminDashboard({
   // Settings Edit state
   const [editSettings, setEditSettings] = useState({ ...storeSettings });
 
+  React.useEffect(() => {
+    if (storeSettings) {
+      setEditSettings((prev) => ({ ...prev, ...storeSettings }));
+    }
+  }, [storeSettings]);
+
   // Handle PIN Unlock
   const handleUnlock = (e) => {
     e.preventDefault();
@@ -551,13 +557,81 @@ export default function AdminDashboard({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="font-semibold text-gray-700 block mb-1">แถบประกาศด้านบน (Announcement Bar):</label>
+              <label className="font-semibold text-gray-700 block mb-1">แถบประกาศด้านบนสุด (Top Announcement Bar):</label>
               <input
                 type="text"
                 value={editSettings.announcement}
                 onChange={(e) => setEditSettings({ ...editSettings, announcement: e.target.value })}
                 className="w-full p-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-rose-400"
               />
+            </div>
+
+            {/* 📢 CUSTOMER EMAIL / LINE NOTICE BANNER CONFIGURATION */}
+            <div className="sm:col-span-2 bg-gradient-to-r from-pink-50/90 via-rose-50/90 to-pink-50/90 p-4 rounded-2xl border border-pink-200 space-y-3 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="font-bold text-rose-700 flex items-center gap-1.5 text-xs sm:text-sm">
+                  <Sparkles className="w-4 h-4 text-rose-600" />
+                  <span>📢 ป้ายประกาศแจ้งเตือนหน้าเว็บ (ป้ายเมลลูกค้า / ทัก LINE)</span>
+                </div>
+                <label className="inline-flex items-center gap-2 cursor-pointer bg-white px-3 py-1 rounded-full border border-pink-200 shadow-2xs">
+                  <span className="text-[11px] font-bold text-gray-700">เปิดแสดงป้ายนี้:</span>
+                  <input
+                    type="checkbox"
+                    checked={editSettings.showNoticeBanner !== false}
+                    onChange={(e) => setEditSettings({ ...editSettings, showNoticeBanner: e.target.checked })}
+                    className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
+                  />
+                </label>
+              </div>
+              <p className="text-[11px] text-gray-600">
+                คุณสามารถแก้ไขข้อความ หัวข้อ และปุ่มบนแถบการ์ดสีชมพูที่แสดงอยู่เหนือรายการสินค้าหน้าแรกได้จากตรงนี้เลยครับ
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="sm:col-span-2">
+                  <label className="font-semibold text-gray-700 block mb-1">หัวข้อป้ายประกาศ:</label>
+                  <input
+                    type="text"
+                    value={editSettings.noticeBannerTitle ?? 'ต้องการสั่งตัดแพ็กเกจด้วย "เมลตัวเอง (เมลลูกค้า)" ใช่ไหม?'}
+                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerTitle: e.target.value })}
+                    placeholder='เช่น ต้องการสั่งตัดแพ็กเกจด้วย "เมลตัวเอง (เมลลูกค้า)" ใช่ไหม?'
+                    className="w-full p-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-rose-400 bg-white"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="font-semibold text-gray-700 block mb-1">ข้อความรายละเอียดบนป้าย:</label>
+                  <textarea
+                    rows={2}
+                    value={editSettings.noticeBannerText ?? 'บนเว็บไซต์จำหน่ายเฉพาะเมลร้านพร้อมใช้และ Code เติมเอง หากต้องการตัดต่อเมลตัวเอง รบกวนทักไลน์ทางร้านแทนนะครับ'}
+                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerText: e.target.value })}
+                    placeholder="รายละเอียดคำแนะนำให้ลูกค้า..."
+                    className="w-full p-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-rose-400 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-gray-700 block mb-1">ข้อความบนปุ่มกด (Button Text):</label>
+                  <input
+                    type="text"
+                    value={editSettings.noticeBannerBtnText ?? 'ทัก LINE สั่งตัดเมลตัวเอง'}
+                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerBtnText: e.target.value })}
+                    placeholder="เช่น ทัก LINE สั่งตัดเมลตัวเอง"
+                    className="w-full p-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-rose-400 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-gray-700 block mb-1">ลิงก์ของปุ่ม (ว่างไว้จะใช้ LINE ร้านค้า):</label>
+                  <input
+                    type="text"
+                    value={editSettings.noticeBannerBtnUrl ?? ''}
+                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerBtnUrl: e.target.value })}
+                    placeholder="https://line.me/R/ti/p/@bastore (หรือเว้นว่างไว้)"
+                    className="w-full p-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-rose-400 bg-white"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* 🖼️ LOGO & BANNER CUSTOMIZATION SECTION */}
