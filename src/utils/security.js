@@ -40,52 +40,43 @@ export function initWebsiteSecurity() {
   );
 
   // 3. Disable DevTools & Source Inspection Keyboard Shortcuts
-  window.addEventListener(
-    'keydown',
-    (e) => {
-      // F12
-      if (e.key === 'F12' || e.keyCode === 123) {
+  const blockShortcuts = (e) => {
+    // F12 or keyCode 123 or code F12
+    const isF12 = e.key === 'F12' || e.keyCode === 123 || e.which === 123 || e.code === 'F12';
+
+    const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+    // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element picker), Ctrl+Shift+K (Firefox)
+    const isDevToolsCombo =
+      isCtrlOrMeta &&
+      e.shiftKey &&
+      ['i', 'I', 'j', 'J', 'c', 'C', 'k', 'K'].includes(e.key);
+
+    // Ctrl+U / Cmd+U (View Page Source)
+    const isViewSource = isCtrlOrMeta && (e.key === 'u' || e.key === 'U' || e.code === 'KeyU');
+
+    // Ctrl+S / Cmd+S (Save Webpage)
+    const isSavePage = isCtrlOrMeta && (e.key === 's' || e.key === 'S' || e.code === 'KeyS');
+
+    // Ctrl+P (Print webpage)
+    const isPrintPage = isCtrlOrMeta && (e.key === 'p' || e.key === 'P' || e.code === 'KeyP');
+
+    if (isF12 || isDevToolsCombo || isViewSource || isSavePage || isPrintPage) {
+      try {
         e.preventDefault();
         e.stopPropagation();
-        return false;
-      }
+        e.stopImmediatePropagation();
+      } catch (_) {}
+      return false;
+    }
+  };
 
-      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-
-      // Ctrl+Shift+I (Inspect), Ctrl+Shift+J (Console), Ctrl+Shift+C (Element picker), Ctrl+Shift+K (Firefox)
-      if (
-        isCtrlOrMeta &&
-        e.shiftKey &&
-        ['i', 'I', 'j', 'J', 'c', 'C', 'k', 'K'].includes(e.key)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // Ctrl+U / Cmd+U (View Page Source)
-      if (isCtrlOrMeta && (e.key === 'u' || e.key === 'U')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // Ctrl+S / Cmd+S (Save Webpage)
-      if (isCtrlOrMeta && (e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-
-      // Ctrl+P (Print webpage)
-      if (isCtrlOrMeta && (e.key === 'p' || e.key === 'P')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    },
-    true
-  );
+  // Register in capture phase for both window and document to intercept before browser defaults
+  window.addEventListener('keydown', blockShortcuts, { capture: true, passive: false });
+  document.addEventListener('keydown', blockShortcuts, { capture: true, passive: false });
+  window.addEventListener('keyup', blockShortcuts, { capture: true, passive: false });
+  document.addEventListener('keyup', blockShortcuts, { capture: true, passive: false });
+  document.onkeydown = blockShortcuts;
 
   // Helper to detect mobile/tablet devices
   const isMobile = () => {
