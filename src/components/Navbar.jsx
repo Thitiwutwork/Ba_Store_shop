@@ -84,7 +84,7 @@ export default function Navbar({
           </button>
 
           <a
-            href="/otp"
+            href={storeSettings?.otpUrl || "/otp"}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3.5 py-1.5 rounded-xl font-medium text-gray-600 hover:text-indigo-600 hover:bg-white/50 transition-all flex items-center gap-1.5 cursor-pointer"
@@ -217,7 +217,7 @@ export default function Navbar({
         </button>
 
         <a
-          href="/otp"
+          href={storeSettings?.otpUrl || "/otp"}
           target="_blank"
           rel="noopener noreferrer"
           className="py-1.5 px-2.5 rounded-xl flex items-center gap-1 text-gray-600 hover:text-indigo-600 font-medium"

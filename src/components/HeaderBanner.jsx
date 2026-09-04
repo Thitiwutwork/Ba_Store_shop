@@ -112,7 +112,7 @@ export default function HeaderBanner({ storeSettings }) {
           </a>
 
           <a
-            href="/otp"
+            href={storeSettings?.otpUrl || "/otp"}
             target="_blank"
             rel="noopener noreferrer"
             className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-700 active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-indigo-400/30 shrink-0"

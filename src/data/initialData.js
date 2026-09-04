@@ -32,6 +32,7 @@ export const DEFAULT_STORE_SETTINGS = {
   
   lineId: "@bastore",
   lineUrl: "https://line.me/R/ti/p/@bastore",
+  otpUrl: "",
 
   // Customer Email Cut Notice Banner on Storefront
   showNoticeBanner: true,

@@ -157,7 +157,9 @@ export default function App() {
   }, []);
 
   const handleGoToOtp = (email = '') => {
-    const url = email ? `/otp?email=${encodeURIComponent(email)}` : '/otp';
+    const baseUrl = storeSettings?.otpUrl || '/otp';
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const url = email ? `${baseUrl}${separator}email=${encodeURIComponent(email)}` : baseUrl;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
