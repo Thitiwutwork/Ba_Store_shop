@@ -253,6 +253,23 @@ export async function registerUser({ email, password, displayName }) {
   saveData(STORAGE_KEYS.USERS, users);
   setCurrentUser(newUser);
   addAuditLog('USER_REGISTER', { email: newUser.email, id: newUser.id });
+
+  // Dual-write to relational profiles table in Supabase
+  if (isSupabaseConfigured()) {
+    const client = getSupabaseClient();
+    if (client) {
+      client.from('profiles').upsert([
+        {
+          email: newUser.email,
+          password: newUser.password,
+          display_name: newUser.displayName,
+          wallet_balance: 0.00,
+          role: 'user'
+        }
+      ], { onConflict: 'email' }).then(() => {}).catch(() => {});
+    }
+  }
+
   return { success: true, user: newUser };
 }
 
