@@ -107,7 +107,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
     }
   };
 
-  // Fetch Mails from Serverless Proxy Endpoint
+  // Fetch Mails: Dual Strategy (Serverless Proxy -> Direct Client Fallback)
   const fetchMails = async (targetEmail, isSilent = false) => {
     const clean = (targetEmail || emailInput).trim().toLowerCase();
     if (!clean || !clean.includes('@')) {
@@ -123,6 +123,10 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
       setWarningMessage('');
     }
 
+    let fetchedMails = null;
+    let failureMsg = '';
+
+    // 1. Try secure Serverless Proxy /api/get-otp
     try {
       const res = await fetch('/api/get-otp', {
         method: 'POST',
@@ -136,36 +140,71 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
         })
       });
 
-      const data = await res.json();
-
-      if (data.success) {
-        const fetchedMails = Array.isArray(data.mails) ? data.mails : [];
-        setMails(fetchedMails);
-        setActiveEmail(clean);
-        saveRecentEmail(clean);
-        setLastUpdated(new Date());
-
-        if (data.warning && fetchedMails.length === 0) {
-          setWarningMessage(data.warning);
-        } else {
-          setWarningMessage('');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.mails)) {
+          fetchedMails = data.mails;
+        } else if (data && data.error) {
+          failureMsg = data.error;
         }
-
-        if (!isSilent && fetchedMails.length > 0 && onShowToast) {
-          onShowToast(`📬 ดึงข้อความเรียบร้อยแล้ว (${fetchedMails.length} รายการ)`, '✨');
-        }
-      } else {
-        setErrorMessage(data.error || 'ไม่สามารถดึงข้อมูลอีเมลได้');
       }
     } catch (err) {
-      console.error('Fetch OTP error:', err);
-      if (!isSilent) {
-        setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+      console.warn('Proxy endpoint unreached, trying direct API fallback...', err);
+    }
+
+    // 2. Fallback: Direct Browser API Call to Maily Space
+    if (!fetchedMails) {
+      try {
+        const directRes = await fetch('https://api.maily.space/v1/mails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
+            email: clean,
+            size: 40,
+            page: 1
+          })
+        });
+
+        const directData = await directRes.json();
+        if (directRes.ok && directData) {
+          const list = Array.isArray(directData?.data?.mails)
+            ? directData.data.mails
+            : (Array.isArray(directData?.mails) ? directData.mails : []);
+          fetchedMails = list;
+        } else {
+          failureMsg = directData?.message || failureMsg || 'ไม่พบบัญชีเมลนี้ในระบบ Maily Space';
+        }
+      } catch (directErr) {
+        console.error('Direct Maily Space call error:', directErr);
+        failureMsg = failureMsg || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Maily Space ได้';
       }
-    } finally {
-      if (!isSilent) {
-        setIsLoading(false);
+    }
+
+    if (fetchedMails !== null) {
+      setMails(fetchedMails);
+      setActiveEmail(clean);
+      saveRecentEmail(clean);
+      setLastUpdated(new Date());
+
+      if (fetchedMails.length === 0) {
+        setWarningMessage('ยังไม่มีข้อความเข้าในกล่องจดหมายนี้ (หากเพิ่งขอ OTP กรุณารอสักครู่แล้วกดรีเฟรช)');
+      } else {
+        setWarningMessage('');
+        if (!isSilent && onShowToast) {
+          onShowToast(`📬 ดึงข้อความเรียบร้อยแล้ว (${fetchedMails.length} รายการ)`, '✨');
+        }
       }
+    } else {
+      if (!isSilent) {
+        setErrorMessage(failureMsg || 'เกิดข้อผิดพลาดในการดึงข้อมูลอีเมล');
+      }
+    }
+
+    if (!isSilent) {
+      setIsLoading(false);
     }
   };
 

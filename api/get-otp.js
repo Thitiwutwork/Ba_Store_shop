@@ -16,11 +16,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Handle GET or POST
-  const emailParam = req.method === 'POST' ? req.body?.email : req.query?.email;
-  const searchParam = req.method === 'POST' ? req.body?.search : req.query?.search;
-  const pageParam = parseInt(req.method === 'POST' ? req.body?.page : req.query?.page) || 1;
-  const sizeParam = parseInt(req.method === 'POST' ? req.body?.size : req.query?.size) || 40;
+  // Handle GET or POST with safe body parsing
+  let parsedBody = req.body;
+  if (typeof parsedBody === 'string') {
+    try { parsedBody = JSON.parse(parsedBody); } catch (e) {}
+  }
+
+  const emailParam = req.method === 'POST' ? parsedBody?.email : req.query?.email;
+  const searchParam = req.method === 'POST' ? parsedBody?.search : req.query?.search;
+  const pageParam = parseInt(req.method === 'POST' ? parsedBody?.page : req.query?.page) || 1;
+  const sizeParam = parseInt(req.method === 'POST' ? parsedBody?.size : req.query?.size) || 40;
 
   const rawEmail = (emailParam || '').trim().toLowerCase();
 
@@ -48,12 +53,20 @@ export default async function handler(req, res) {
     const upstreamResponse = await fetch('https://api.maily.space/v1/mails', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*'
       },
       body: JSON.stringify(mailyPayload)
     });
 
-    const resData = await upstreamResponse.json();
+    const textData = await upstreamResponse.text();
+    let resData = null;
+    try {
+      resData = JSON.parse(textData);
+    } catch (e) {
+      console.error('Non-JSON response from Maily Space:', textData?.slice(0, 200));
+    }
 
     // Maily Space API returns { statusCode: 200, data: { totalPage, currentPage, size, mails: [...] } }
     const mailList = Array.isArray(resData?.data?.mails)
