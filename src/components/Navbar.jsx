@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, CreditCard, Package, Shield, Plus, User, LogIn, LogOut, Users } from 'lucide-react';
+import { ShoppingBag, CreditCard, Package, Shield, Plus, User, LogIn, LogOut, Users, KeyRound } from 'lucide-react';
 
 export default function Navbar({
   currentTab,
@@ -81,6 +81,18 @@ export default function Navbar({
                 {orderCount}
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => onSelectTab('otp')}
+            className={`px-3.5 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
+              currentTab === 'otp'
+                ? 'bg-white text-indigo-600 shadow-xs font-bold'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+            }`}
+          >
+            <KeyRound className="w-4 h-4 text-indigo-500" />
+            <span>รับรหัส OTP</span>
           </button>
 
           {currentUser?.role === 'admin' && (
@@ -182,7 +194,7 @@ export default function Navbar({
 
         <button
           onClick={() => onSelectTab('orders')}
-          className={`py-1.5 px-3 rounded-xl flex items-center gap-1 ${
+          className={`py-1.5 px-2.5 rounded-xl flex items-center gap-1 ${
             currentTab === 'orders' ? 'text-rose-600 font-bold bg-pink-50' : 'text-gray-600'
           }`}
         >
@@ -193,6 +205,16 @@ export default function Navbar({
               {orderCount}
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => onSelectTab('otp')}
+          className={`py-1.5 px-2.5 rounded-xl flex items-center gap-1 ${
+            currentTab === 'otp' ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-600'
+          }`}
+        >
+          <KeyRound className="w-3.5 h-3.5 text-indigo-500" />
+          <span>รับ OTP</span>
         </button>
 
         {currentUser?.role === 'admin' && (

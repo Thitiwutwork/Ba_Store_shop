@@ -32,9 +32,6 @@ export const DEFAULT_STORE_SETTINGS = {
   
   lineId: "@bastore",
   lineUrl: "https://line.me/R/ti/p/@bastore",
-  lineButtonText: "ติดต่อสั่งซื้อทาง LINE",
-  otpMailButtonText: "กด OTP เมลล์",
-  otpMailUrl: "https://maily.space/mailbox",
 
   // Customer Email Cut Notice Banner on Storefront
   showNoticeBanner: true,

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
   Shield, Key, Package, CreditCard, Settings, FileText, Check, X,
-  Plus, Trash2, Eye, RefreshCw, Lock, AlertCircle, Sparkles, QrCode, UploadCloud, Users, ShoppingBag,
-  Mail, Megaphone
+  Plus, Trash2, Eye, RefreshCw, Lock, AlertCircle, Sparkles, QrCode, UploadCloud, Users, ShoppingBag
 } from 'lucide-react';
 import AccountManager from './AccountManager';
 import AdminProductManager from './AdminProductManager';
@@ -810,100 +809,14 @@ export default function AdminDashboard({
               />
             </div>
 
-            {/* 📢 NOTICE BANNER & ANNOUNCEMENT SETTINGS */}
-            <div className="sm:col-span-2 bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-2xl border border-pink-200 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="font-bold text-pink-900 flex items-center gap-1.5 text-xs sm:text-sm">
-                  <Megaphone className="w-4 h-4 text-pink-600" />
-                  <span>📢 ป้ายประกาศบนสุด &amp; แถบแจ้งเตือนตัดเมลลูกค้า (Notice Banner)</span>
-                </div>
-                <label className="inline-flex items-center gap-2 cursor-pointer bg-white px-3 py-1 rounded-xl border border-pink-200 shadow-2xs">
-                  <input
-                    type="checkbox"
-                    checked={editSettings.showNoticeBanner !== false}
-                    onChange={(e) => setEditSettings({ ...editSettings, showNoticeBanner: e.target.checked })}
-                    className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4"
-                  />
-                  <span className="text-xs font-bold text-pink-800">เปิดแสดงแถบแจ้งเตือนสีชมพู</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="font-semibold text-gray-700 block mb-1 text-xs">
-                    ข้อความป้ายวิ่งด้านบนสุด (Top Announcement Bar):
-                  </label>
-                  <input
-                    type="text"
-                    value={editSettings.announcement || ''}
-                    onChange={(e) => setEditSettings({ ...editSettings, announcement: e.target.value })}
-                    placeholder="เช่น 📢 หากต้องการสั่งตัดต่อแบบ 'เมลลูกค้า (เมลตัวเอง)' รบกวนทัก LINE ทางร้านแทนนะงับ ♡"
-                    className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-800"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="font-semibold text-gray-700 block mb-1 text-xs">
-                    หัวข้อแถบแจ้งเตือนสีชมพู (Notice Banner Title):
-                  </label>
-                  <input
-                    type="text"
-                    value={editSettings.noticeBannerTitle || ''}
-                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerTitle: e.target.value })}
-                    placeholder="ต้องการสั่งตัดแพ็กเกจด้วย 'เมลตัวเอง (เมลลูกค้า)' ใช่ไหม?"
-                    className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-800"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="font-semibold text-gray-700 block mb-1 text-xs">
-                    ข้อความรายละเอียดแถบแจ้งเตือน:
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={editSettings.noticeBannerText || ''}
-                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerText: e.target.value })}
-                    placeholder="บนเว็บไซต์จำหน่ายเฉพาะเมลร้านพร้อมใช้และ Code เติมเอง หากต้องการตัดต่อเมลตัวเอง รบกวนทักไลน์ทางร้านแทนนะครับ"
-                    className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-xs text-gray-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-gray-700 block mb-1 text-xs">
-                    ข้อความบนปุ่มในแถบแจ้งเตือน:
-                  </label>
-                  <input
-                    type="text"
-                    value={editSettings.noticeBannerBtnText || ''}
-                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerBtnText: e.target.value })}
-                    placeholder="ทัก LINE สั่งตัดเมลตัวเอง"
-                    className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-gray-700 block mb-1 text-xs">
-                    ลิงก์ปุ่มในแถบแจ้งเตือน (เว้นว่างไว้จะใช้ LINE ร้าน):
-                  </label>
-                  <input
-                    type="text"
-                    value={editSettings.noticeBannerBtnUrl || ''}
-                    onChange={(e) => setEditSettings({ ...editSettings, noticeBannerBtnUrl: e.target.value })}
-                    placeholder="เว้นว่างไว้จะเปิด LINE ร้านอัตโนมัติ"
-                    className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-xs font-mono text-gray-800"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 📊 LIVE COUNTER STATS & STOREFRONT ACTION BUTTONS */}
+            {/* 📊 LIVE COUNTER STATS & STOREFRONT ACTION SECTION */}
             <div className="sm:col-span-2 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 p-4 rounded-2xl border border-blue-200/80 space-y-2.5">
               <div className="font-bold text-blue-800 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-blue-600" />
-                <span>📊 ปรับแต่งแถบสถิติสด &amp; ปุ่มกดหัวเว็บ (LINE &amp; OTP เมลล์)</span>
+                <span>📊 ปรับแต่งแถบสถิติสด (Live Counters) &amp; ปุ่มติดต่อหน้าร้าน</span>
               </div>
               <p className="text-[11px] text-gray-600">
-                คุณสามารถปรับแก้ตัวเลขสถิติ และปรับเปลี่ยนข้อความหรือลิงก์ปุ่มกดทั้ง 2 ปุ่มหน้าร้านได้อิสระ
+                คุณสามารถปรับแก้ตัวเลขสถิติ 4 ช่อง (ผู้ใช้, สินค้า, สต๊อก, ยอดขาย) และข้อความบนปุ่ม LINE ได้อย่างอิสระ
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -931,31 +844,9 @@ export default function AdminDashboard({
                   <label className="font-semibold text-gray-700 block mb-1">ข้อความบนปุ่มติดต่อ LINE:</label>
                   <input
                     type="text"
-                    value={editSettings.lineButtonText || 'ติดต่อสั่งซื้อทาง LINE'}
+                    value={editSettings.lineButtonText || 'สั่งซื้อ / สอบถามทาง LINE'}
                     onChange={(e) => setEditSettings({ ...editSettings, lineButtonText: e.target.value })}
                     className="w-full p-2 rounded-xl border border-gray-200 bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-gray-700 block mb-1">ข้อความบนปุ่มกด OTP เมลล์:</label>
-                  <input
-                    type="text"
-                    value={editSettings.otpMailButtonText || 'กด OTP เมลล์'}
-                    onChange={(e) => setEditSettings({ ...editSettings, otpMailButtonText: e.target.value })}
-                    placeholder="กด OTP เมลล์"
-                    className="w-full p-2 rounded-xl border border-gray-200 bg-white font-bold text-violet-800"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="font-semibold text-gray-700 block mb-1">ลิงก์หน้าเว็บกด OTP เมลล์ (URL):</label>
-                  <input
-                    type="text"
-                    value={editSettings.otpMailUrl || 'https://maily.space/mailbox'}
-                    onChange={(e) => setEditSettings({ ...editSettings, otpMailUrl: e.target.value })}
-                    placeholder="https://maily.space/mailbox"
-                    className="w-full p-2 rounded-xl border border-gray-200 bg-white font-mono text-xs text-indigo-700"
                   />
                 </div>
 
@@ -979,6 +870,26 @@ export default function AdminDashboard({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Slip Verification Status */}
+            <div className="sm:col-span-2 bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg shrink-0">
+                  ✓
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <span>ระบบตรวจสอบสลิปอัตโนมัติ AI (Slip2Go Active)</span>
+                  </h4>
+                  <p className="text-[11px] text-emerald-700 mt-0.5">
+                    ระบบตรวจสอบสลิปและเครดิตยอดเงิน PromptPay อัตโนมัติ 24 ชม. ทำงานผ่านเซิร์ฟเวอร์ความปลอดภัยสูงเรียบร้อยแล้ว
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2.5 py-1 rounded-full shrink-0 self-start sm:self-auto">
+                🟢 พร้อมใช้งาน 24 ชม.
+              </span>
             </div>
 
             <div>

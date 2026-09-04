@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, ShieldCheck, Sparkles, MessageCircle, Mail } from 'lucide-react';
+import { Clock, ShieldCheck, Sparkles, MessageCircle } from 'lucide-react';
 
 export default function HeaderBanner({ storeSettings }) {
   const {
@@ -11,10 +11,8 @@ export default function HeaderBanner({ storeSettings }) {
     logoUrl = '/images/logo.jpg',
     lineUrl = 'https://line.me/ti/p/~@bastore',
     lineId = '@bastore',
-    lineButtonText = 'ติดต่อสั่งซื้อทาง LINE',
-    guaranteeText = 'รับประกันดูแลตลอดการใช้งาน',
-    otpMailButtonText = 'กด OTP เมลล์',
-    otpMailUrl = 'https://maily.space/mailbox'
+    lineButtonText = 'สั่งซื้อ / สอบถามทาง LINE',
+    guaranteeText = 'รับประกันดูแลตลอดการใช้งาน'
   } = storeSettings || {};
 
   return (
@@ -93,9 +91,8 @@ export default function HeaderBanner({ storeSettings }) {
           </div>
         </div>
 
-        {/* Action Buttons: LINE & OTP Mail */}
-        <div className="mt-3.5 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 max-w-md sm:max-w-xl mx-auto w-full px-2">
-          {/* Green Contact LINE Action Button */}
+        {/* Green Contact LINE Action Button */}
+        <div className="mt-3.5 flex items-center justify-center max-w-xs sm:max-w-sm mx-auto">
           <a
             href="https://line.me/R/ti/p/@bastore"
             target="_blank"
@@ -108,26 +105,10 @@ export default function HeaderBanner({ storeSettings }) {
               window.open(targetUrl, '_blank', 'noopener,noreferrer');
               e.preventDefault();
             }}
-            className="w-full sm:flex-1 py-2.5 px-4 rounded-2xl bg-[#06C755] hover:bg-[#05B34C] active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+            className="w-full py-2.5 px-6 rounded-2xl bg-[#06C755] hover:bg-[#05B34C] active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-            <span className="truncate">{lineButtonText || 'ติดต่อสั่งซื้อทาง LINE'}</span>
-          </a>
-
-          {/* OTP Mailbox Action Button */}
-          <a
-            href={otpMailUrl || 'https://maily.space/mailbox'}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => {
-              const target = otpMailUrl || 'https://maily.space/mailbox';
-              window.open(target, '_blank', 'noopener,noreferrer');
-              e.preventDefault();
-            }}
-            className="w-full sm:flex-1 py-2.5 px-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:to-indigo-700 active:scale-98 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
-          >
-            <Mail className="w-4 h-4 text-white shrink-0" />
-            <span className="truncate">{otpMailButtonText || 'กด OTP เมลล์'}</span>
+            <MessageCircle className="w-4 h-4 fill-white" />
+            <span>{lineButtonText} {lineId}</span>
           </a>
         </div>
 

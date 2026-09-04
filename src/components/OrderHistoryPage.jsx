@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Package, Copy, Check, ShieldCheck, Clock, ExternalLink } from 'lucide-react';
+import { Package, Copy, Check, ShieldCheck, Clock, ExternalLink, KeyRound } from 'lucide-react';
 
-export default function OrderHistoryPage({ orders = [], onSwitchTab, onShowToast }) {
+export default function OrderHistoryPage({ orders = [], onSwitchTab, onShowToast, onGoToOtp }) {
   const [copiedId, setCopiedId] = useState(null);
 
   const handleCopy = (id, text) => {
@@ -126,6 +126,23 @@ export default function OrderHistoryPage({ orders = [], onSwitchTab, onShowToast
                   <div className="font-mono text-gray-700 bg-white px-3 py-2 rounded-xl text-xs border border-pink-100 break-all select-all">
                     {order.deliveredCredential || 'ไม่มีข้อมูลรหัส'}
                   </div>
+
+                  {(() => {
+                    const emailMatch = (order.deliveredCredential || '').match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+                    const credEmail = emailMatch ? emailMatch[1] : null;
+                    if (!credEmail) return null;
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onGoToOtp && onGoToOtp(credEmail)}
+                        className="w-full py-1.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>📬 เช็ครหัส OTP ของเมลนี้</span>
+                      </button>
+                    );
+                  })()}
 
                   <div className="text-[10px] text-gray-400 flex items-center justify-between">
                     <span>สถานะ: บัญชีแท้ ได้วันครบ 100%</span>

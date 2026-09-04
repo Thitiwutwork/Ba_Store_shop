@@ -8,6 +8,7 @@ import ProductCard from './components/ProductCard';
 import OrderModal from './components/OrderModal';
 import TopupPage from './components/TopupPage';
 import OrderHistoryPage from './components/OrderHistoryPage';
+import OtpMailboxPage from './components/OtpMailboxPage';
 import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import Toast from './components/Toast';
@@ -41,7 +42,8 @@ import {
 
 export default function App() {
   // Navigation State
-  const [currentTab, setCurrentTab] = useState('store'); // 'store' | 'topup' | 'orders' | 'admin'
+  const [currentTab, setCurrentTab] = useState('store'); // 'store' | 'topup' | 'orders' | 'otp' | 'admin'
+  const [otpEmailQuery, setOtpEmailQuery] = useState('');
 
   // User & Auth State
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
@@ -113,6 +115,12 @@ export default function App() {
   // Switch tab helper with smooth scroll
   const handleSelectTab = (tab) => {
     setCurrentTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleGoToOtp = (email = '') => {
+    setOtpEmailQuery(email);
+    setCurrentTab('otp');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -416,6 +424,16 @@ export default function App() {
         {currentTab === 'orders' && (
           <OrderHistoryPage
             orders={orders}
+            onSwitchTab={handleSelectTab}
+            onShowToast={showToast}
+            onGoToOtp={handleGoToOtp}
+          />
+        )}
+
+        {/* TAB: OTP MAILBOX */}
+        {currentTab === 'otp' && (
+          <OtpMailboxPage
+            initialEmail={otpEmailQuery}
             onSwitchTab={handleSelectTab}
             onShowToast={showToast}
           />
