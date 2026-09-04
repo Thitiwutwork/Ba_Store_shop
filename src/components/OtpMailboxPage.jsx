@@ -107,6 +107,21 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
     }
   };
 
+  // Generate smart variants for common zero/O and 1/l confusion
+  const getEmailVariants = (raw) => {
+    const clean = raw.trim().toLowerCase();
+    const list = [clean];
+    const [name, domain] = clean.split('@');
+    if (name && domain) {
+      if (name.includes('o')) list.push(name.replace(/o/g, '0') + '@' + domain);
+      if (name.includes('0')) list.push(name.replace(/0/g, 'o') + '@' + domain);
+      if (name.includes('l')) list.push(name.replace(/l/g, '1') + '@' + domain);
+      if (name.includes('1')) list.push(name.replace(/1/g, 'l') + '@' + domain);
+      if (name.includes('o') && name.includes('l')) list.push(name.replace(/o/g, '0').replace(/l/g, '1') + '@' + domain);
+    }
+    return [...new Set(list)];
+  };
+
   // Fetch Mails: Dual Strategy (Serverless Proxy -> Direct Client Fallback)
   const fetchMails = async (targetEmail, isSilent = false) => {
     const clean = (targetEmail || emailInput).trim().toLowerCase();
@@ -123,7 +138,9 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
       setWarningMessage('');
     }
 
+    const variants = getEmailVariants(clean);
     let fetchedMails = null;
+    let matchedEmail = clean;
     let failureMsg = '';
 
     // 1. Try secure Serverless Proxy /api/get-otp
@@ -142,8 +159,9 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
 
       if (res.ok) {
         const data = await res.json();
-        if (data && data.success && Array.isArray(data.mails)) {
+        if (data && data.success && Array.isArray(data.mails) && data.mails.length > 0) {
           fetchedMails = data.mails;
+          if (data.resolvedEmail) matchedEmail = data.resolvedEmail;
         } else if (data && data.error) {
           failureMsg = data.error;
         }
@@ -152,55 +170,56 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
       console.warn('Proxy endpoint unreached, trying direct API fallback...', err);
     }
 
-    // 2. Fallback: Direct Browser API Call to Maily Space
-    if (!fetchedMails) {
-      try {
-        const directRes = await fetch('https://api.maily.space/v1/mails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
-            email: clean,
-            size: 40,
-            page: 1
-          })
-        });
+    // 2. Fallback: Direct Browser API Call to Maily Space across all variants
+    if (!fetchedMails || fetchedMails.length === 0) {
+      for (const variant of variants) {
+        try {
+          const directRes = await fetch('https://api.maily.space/v1/mails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              apiKey: 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p',
+              email: variant,
+              size: 40,
+              page: 1
+            })
+          });
 
-        const directData = await directRes.json();
-        if (directRes.ok && directData) {
-          const list = Array.isArray(directData?.data?.mails)
-            ? directData.data.mails
-            : (Array.isArray(directData?.mails) ? directData.mails : []);
-          fetchedMails = list;
-        } else {
-          failureMsg = directData?.message || failureMsg || 'ไม่พบบัญชีเมลนี้ในระบบ Maily Space';
+          const directData = await directRes.json();
+          if (directRes.ok && directData) {
+            const list = Array.isArray(directData?.data?.mails)
+              ? directData.data.mails
+              : (Array.isArray(directData?.mails) ? directData.mails : []);
+            if (list.length > 0) {
+              fetchedMails = list;
+              matchedEmail = variant;
+              break;
+            }
+          }
+        } catch (directErr) {
+          console.error('Direct Maily Space call error:', directErr);
         }
-      } catch (directErr) {
-        console.error('Direct Maily Space call error:', directErr);
-        failureMsg = failureMsg || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Maily Space ได้';
       }
     }
 
-    if (fetchedMails !== null) {
+    if (fetchedMails && fetchedMails.length > 0) {
       setMails(fetchedMails);
+      setActiveEmail(matchedEmail);
+      setEmailInput(matchedEmail);
+      saveRecentEmail(matchedEmail);
+      setLastUpdated(new Date());
+      setWarningMessage('');
+      if (!isSilent && onShowToast) {
+        onShowToast(`📬 ดึงข้อความเรียบร้อยแล้ว (${fetchedMails.length} รายการ)`, '✨');
+      }
+    } else {
+      setMails([]);
       setActiveEmail(clean);
       saveRecentEmail(clean);
       setLastUpdated(new Date());
-
-      if (fetchedMails.length === 0) {
-        setWarningMessage('ยังไม่มีข้อความเข้าในกล่องจดหมายนี้ (หากเพิ่งขอ OTP กรุณารอสักครู่แล้วกดรีเฟรช)');
-      } else {
-        setWarningMessage('');
-        if (!isSilent && onShowToast) {
-          onShowToast(`📬 ดึงข้อความเรียบร้อยแล้ว (${fetchedMails.length} รายการ)`, '✨');
-        }
-      }
-    } else {
-      if (!isSilent) {
-        setErrorMessage(failureMsg || 'เกิดข้อผิดพลาดในการดึงข้อมูลอีเมล');
-      }
+      setWarningMessage('ยังไม่มีข้อความเข้าในกล่องจดหมายนี้ (หากเพิ่งขอ OTP กรุณารอสักครู่แล้วกดรีเฟรช)');
     }
 
     if (!isSilent) {
@@ -313,7 +332,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="example@rdcw.plus"
-              className="w-full pl-10 pr-4 py-3 sm:py-3.5 bg-gray-50/70 hover:bg-white focus:bg-white border border-gray-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 rounded-2xl text-sm sm:text-base font-medium text-gray-800 transition-all outline-none"
+              className="w-full pl-10 pr-4 py-3 sm:py-3.5 bg-gray-50/70 hover:bg-white focus:bg-white border border-gray-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 rounded-2xl text-sm sm:text-base font-mono tracking-wide text-gray-800 transition-all outline-none"
             />
             {emailInput && (
               <button
