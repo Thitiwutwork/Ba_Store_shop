@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   if (!rawEmail || !rawEmail.includes('@')) {
     return res.status(400).json({
       success: false,
-      error: 'กรุณาระบุที่อยู่อีเมลที่ถูกต้อง (เช่น example@rdcw.plus)'
+      error: 'กรุณาระบุที่อยู่อีเมลที่ถูกต้อง (เช่น example@baxsv.store)'
     });
   }
 
