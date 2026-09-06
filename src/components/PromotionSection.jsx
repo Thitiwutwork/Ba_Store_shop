@@ -1,5 +1,6 @@
 import React from 'react';
 import { Flame, ShoppingCart, Sparkles, CheckCircle2 } from 'lucide-react';
+import { normalizeProductIcon, getBrandIconByName } from '../data/initialData';
 
 export default function PromotionSection({ promotions = [], onSelectPromo }) {
   if (!promotions || promotions.length === 0) return null;
@@ -22,6 +23,8 @@ export default function PromotionSection({ promotions = [], onSelectPromo }) {
           const original = parseFloat(promo.originalPrice) || 0;
           const current = parseFloat(promo.promoPrice) || 0;
           const discount = Math.max(0, original - current);
+          const icon1 = normalizeProductIcon(promo.app1Icon, promo.app1Name || promo.name);
+          const icon2 = promo.app2Icon ? normalizeProductIcon(promo.app2Icon, promo.app2Name || promo.name) : null;
 
           return (
             <div
@@ -33,14 +36,50 @@ export default function PromotionSection({ promotions = [], onSelectPromo }) {
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Apps Overlapping Icons */}
                   <div className="flex -space-x-3.5 shrink-0">
-                    {promo.app1Icon && (
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl overflow-hidden shadow-sm ring-2 ring-white z-10 bg-white">
-                        <img src={promo.app1Icon} alt={promo.app1Name} className="w-full h-full object-cover" />
+                    {icon1 && (
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl overflow-hidden shadow-sm ring-2 ring-white z-10 bg-white relative">
+                        <img
+                          src={icon1}
+                          alt={promo.app1Name || 'App 1'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const fallback = getBrandIconByName(promo.app1Name || promo.name);
+                            if (fallback && !e.currentTarget.getAttribute('data-fallback-applied')) {
+                              e.currentTarget.setAttribute('data-fallback-applied', 'true');
+                              e.currentTarget.src = fallback;
+                            } else {
+                              e.currentTarget.style.display = 'none';
+                              const fb = e.currentTarget.parentElement?.querySelector('.icon-fallback-badge');
+                              if (fb) fb.style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div className="icon-fallback-badge hidden w-full h-full items-center justify-center bg-rose-50 text-rose-600 font-bold text-xs">
+                          {(promo.app1Name || promo.name)?.[0] || '🎁'}
+                        </div>
                       </div>
                     )}
-                    {promo.app2Icon && (
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl overflow-hidden shadow-sm ring-2 ring-white z-20 bg-white">
-                        <img src={promo.app2Icon} alt={promo.app2Name} className="w-full h-full object-cover" />
+                    {icon2 && (
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl overflow-hidden shadow-sm ring-2 ring-white z-20 bg-white relative">
+                        <img
+                          src={icon2}
+                          alt={promo.app2Name || 'App 2'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const fallback = getBrandIconByName(promo.app2Name);
+                            if (fallback && !e.currentTarget.getAttribute('data-fallback-applied')) {
+                              e.currentTarget.setAttribute('data-fallback-applied', 'true');
+                              e.currentTarget.src = fallback;
+                            } else {
+                              e.currentTarget.style.display = 'none';
+                              const fb = e.currentTarget.parentElement?.querySelector('.icon-fallback-badge');
+                              if (fb) fb.style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div className="icon-fallback-badge hidden w-full h-full items-center justify-center bg-rose-50 text-rose-600 font-bold text-xs">
+                          {(promo.app2Name)?.[0] || '🎁'}
+                        </div>
                       </div>
                     )}
                   </div>

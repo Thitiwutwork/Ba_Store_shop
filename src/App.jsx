@@ -54,6 +54,7 @@ import {
   logoutUser,
   initCloudSync
 } from './services/storageService';
+import { normalizeProductIcon } from './data/initialData';
 
 export default function App() {
   // Navigation State (URL-aware: / -> login, /store -> store, etc.)
@@ -96,8 +97,16 @@ export default function App() {
   useEffect(() => {
     let unsubscribe = null;
     initCloudSync(({ key, data }) => {
-      if (key === 'products' && Array.isArray(data)) setProducts(data);
-      if (key === 'promotions' && Array.isArray(data)) setPromotions(data);
+      if (key === 'products' && Array.isArray(data)) {
+        setProducts(data.map((p) => ({ ...p, icon: normalizeProductIcon(p.icon, p.name) })));
+      }
+      if (key === 'promotions' && Array.isArray(data)) {
+        setPromotions(data.map((p) => ({
+          ...p,
+          app1Icon: normalizeProductIcon(p.app1Icon, p.app1Name || p.name),
+          app2Icon: p.app2Icon ? normalizeProductIcon(p.app2Icon, p.app2Name || p.name) : ''
+        })));
+      }
       if (key === 'settings' && data) setStoreSettings(data);
       if (key === 'orders' && Array.isArray(data)) setOrders(data);
       if (key === 'stock' && Array.isArray(data)) setStockItems(data);

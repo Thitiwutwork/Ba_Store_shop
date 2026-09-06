@@ -8,7 +8,8 @@ import {
   DEFAULT_STORE_SETTINGS,
   DEFAULT_STOCK,
   DEFAULT_ORDERS,
-  CATEGORIES
+  CATEGORIES,
+  normalizeProductIcon
 } from '../data/initialData';
 import { getSupabaseClient, isSupabaseConfigured } from '../utils/supabaseClient';
 
@@ -404,28 +405,9 @@ export function getProducts() {
   let updated = false;
 
   prods.forEach((p) => {
-    if (p.name.includes('iQIYI') && p.icon !== '/logo/iqiyi.png') {
-      p.icon = '/logo/iqiyi.png';
-      updated = true;
-    }
-    if (p.name.includes('Viu') && p.icon !== '/logo/viu.png') {
-      p.icon = '/logo/viu.png';
-      updated = true;
-    }
-    if (p.name.includes('Disney') && p.icon !== '/logo/disney.jpg') {
-      p.icon = '/logo/disney.jpg';
-      updated = true;
-    }
-    if (p.name.includes('WeTV') && p.icon !== '/logo/wetv.jpg') {
-      p.icon = '/logo/wetv.jpg';
-      updated = true;
-    }
-    if (p.name.includes('Bilibili') && p.icon !== '/logo/bili.jpg') {
-      p.icon = '/logo/bili.jpg';
-      updated = true;
-    }
-    if (p.name.includes('YOUKU') && p.icon !== '/logo/youku.jpg') {
-      p.icon = '/logo/youku.jpg';
+    const norm = normalizeProductIcon(p.icon, p.name);
+    if (norm && norm !== p.icon) {
+      p.icon = norm;
       updated = true;
     }
 
@@ -475,7 +457,7 @@ export function addProduct({ name, category, prices, devices, resolution, tag, s
     tag: tag || '',
     subDetail: subDetail || '',
     packageDetails: packageDetails || '',
-    icon: icon || '📱'
+    icon: normalizeProductIcon(icon, name) || '📱'
   };
   products.unshift(newProd);
   saveProducts(products);
@@ -487,7 +469,11 @@ export function updateProduct(id, updatedData) {
   const products = getProducts();
   const idx = products.findIndex(p => p.id === id);
   if (idx === -1) return null;
-  products[idx] = { ...products[idx], ...updatedData };
+  const merged = { ...products[idx], ...updatedData };
+  if (merged.icon || merged.name) {
+    merged.icon = normalizeProductIcon(merged.icon, merged.name);
+  }
+  products[idx] = merged;
   saveProducts(products);
   addAuditLog('PRODUCT_UPDATE', { id, name: products[idx].name });
   return products[idx];
@@ -512,13 +498,17 @@ export function getPromotions() {
   let updated = false;
   if (Array.isArray(promos)) {
     promos.forEach((p) => {
-      if (p.name.includes('iQIYI') && p.app1Icon !== '/logo/iqiyi.png') {
-        p.app1Icon = '/logo/iqiyi.png';
+      const norm1 = normalizeProductIcon(p.app1Icon, p.app1Name || p.name);
+      if (norm1 && norm1 !== p.app1Icon) {
+        p.app1Icon = norm1;
         updated = true;
       }
-      if (p.name.includes('Viu') && p.app2Icon !== '/logo/viu.png') {
-        p.app2Icon = '/logo/viu.png';
-        updated = true;
+      if (p.app2Icon || p.app2Name) {
+        const norm2 = normalizeProductIcon(p.app2Icon, p.app2Name || p.name);
+        if (norm2 && norm2 !== p.app2Icon) {
+          p.app2Icon = norm2;
+          updated = true;
+        }
       }
     });
     if (updated) {
@@ -1334,9 +1324,22 @@ export async function initCloudSync(onSyncCallback) {
         if (!row.key || row.data === undefined) return;
         const localKey = CLOUD_TO_KEY_MAP[row.key];
         if (localKey) {
-          saveDataLocalOnly(localKey, row.data);
+          let syncedData = row.data;
+          if (row.key === 'products' && Array.isArray(syncedData)) {
+            syncedData = syncedData.map((p) => ({
+              ...p,
+              icon: normalizeProductIcon(p.icon, p.name)
+            }));
+          } else if (row.key === 'promotions' && Array.isArray(syncedData)) {
+            syncedData = syncedData.map((p) => ({
+              ...p,
+              app1Icon: normalizeProductIcon(p.app1Icon, p.app1Name || p.name),
+              app2Icon: p.app2Icon ? normalizeProductIcon(p.app2Icon, p.app2Name || p.name) : ''
+            }));
+          }
+          saveDataLocalOnly(localKey, syncedData);
           if (onSyncCallback) {
-            onSyncCallback({ key: row.key, data: row.data });
+            onSyncCallback({ key: row.key, data: syncedData });
           }
         }
       });
@@ -1404,9 +1407,22 @@ export async function initCloudSync(onSyncCallback) {
           const cloudData = payload.new.data;
           const localKey = CLOUD_TO_KEY_MAP[cloudKey];
           if (localKey && cloudData !== undefined) {
-            saveDataLocalOnly(localKey, cloudData);
+            let processed = cloudData;
+            if (cloudKey === 'products' && Array.isArray(processed)) {
+              processed = processed.map((p) => ({
+                ...p,
+                icon: normalizeProductIcon(p.icon, p.name)
+              }));
+            } else if (cloudKey === 'promotions' && Array.isArray(processed)) {
+              processed = processed.map((p) => ({
+                ...p,
+                app1Icon: normalizeProductIcon(p.app1Icon, p.app1Name || p.name),
+                app2Icon: p.app2Icon ? normalizeProductIcon(p.app2Icon, p.app2Name || p.name) : ''
+              }));
+            }
+            saveDataLocalOnly(localKey, processed);
             if (onSyncCallback) {
-              onSyncCallback({ key: cloudKey, data: cloudData, eventType: payload.eventType });
+              onSyncCallback({ key: cloudKey, data: processed, eventType: payload.eventType });
             }
           }
         }

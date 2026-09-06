@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingCart, CheckCircle2, Shield } from 'lucide-react';
+import { normalizeProductIcon, getBrandIconByName } from '../data/initialData';
 
 export default function ProductCard({ product, onSelectProduct, stockCount = 0 }) {
   // Filter out customer email tiers
@@ -16,16 +17,39 @@ export default function ProductCard({ product, onSelectProduct, stockCount = 0 }
     ? Math.min(...displayPrices.map(p => parseFloat(p.price) || 0))
     : 0;
 
+  const displayIcon = normalizeProductIcon(product.icon, product.name);
+  const isImg = displayIcon && (displayIcon.startsWith('/') || displayIcon.startsWith('http') || displayIcon.startsWith('data:image'));
+
   return (
     <div className="bg-white rounded-3xl border border-pink-100 p-4 sm:p-5 flex flex-col justify-between hover:border-pink-300 hover:shadow-md transition-all group">
       <div>
         {/* Top Header: App Icon & Stock Tag */}
         <div className="flex items-start justify-between gap-2">
-          <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-xs shrink-0 flex items-center justify-center bg-gray-50 border border-gray-100">
-            {product.icon && (product.icon.startsWith('/') || product.icon.startsWith('http') || product.icon.startsWith('data:image')) ? (
-              <img src={product.icon} alt={product.name} className="w-full h-full object-cover" />
+          <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-xs shrink-0 flex items-center justify-center bg-gray-50 border border-gray-100 relative">
+            {isImg ? (
+              <>
+                <img
+                  src={displayIcon}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const fallback = getBrandIconByName(product.name);
+                    if (fallback && !e.currentTarget.getAttribute('data-fallback-applied')) {
+                      e.currentTarget.setAttribute('data-fallback-applied', 'true');
+                      e.currentTarget.src = fallback;
+                    } else {
+                      e.currentTarget.style.display = 'none';
+                      const fallbackDiv = e.currentTarget.parentElement?.querySelector('.icon-fallback-badge');
+                      if (fallbackDiv) fallbackDiv.style.display = 'flex';
+                    }
+                  }}
+                />
+                <div className="icon-fallback-badge hidden w-full h-full items-center justify-center bg-rose-50 text-rose-600 font-bold text-base">
+                  {product.name?.trim()?.[0] || '📱'}
+                </div>
+              </>
             ) : (
-              <span className="text-2xl">{product.icon || '📱'}</span>
+              <span className="text-2xl">{displayIcon || '📱'}</span>
             )}
           </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, AlertCircle, Sparkles, Wallet, MessageCircle } from 'lucide-react';
+import { normalizeProductIcon, getBrandIconByName } from '../data/initialData';
 
 export default function OrderModal({
   isOpen,
@@ -77,14 +78,38 @@ export default function OrderModal({
 
         {/* Modal Header */}
         <div className="flex items-center gap-3.5 pr-8">
-          <div className="w-13 h-13 rounded-2xl overflow-hidden shadow-xs shrink-0 flex items-center justify-center bg-gray-50 border border-gray-100">
-            {product.icon && (product.icon.startsWith('/') || product.icon.startsWith('http') || product.icon.startsWith('data:image')) ? (
-              <img src={product.icon} alt={product.name} className="w-full h-full object-cover" />
-            ) : product.app1Icon ? (
-              <img src={product.app1Icon} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-2xl">{product.icon || '🛍️'}</span>
-            )}
+          <div className="w-13 h-13 rounded-2xl overflow-hidden shadow-xs shrink-0 flex items-center justify-center bg-gray-50 border border-gray-100 relative">
+            {(() => {
+              const rawIcon = product.icon || product.app1Icon;
+              const resolvedIcon = normalizeProductIcon(rawIcon, product.name);
+              const isImg = resolvedIcon && (resolvedIcon.startsWith('/') || resolvedIcon.startsWith('http') || resolvedIcon.startsWith('data:image'));
+              if (isImg) {
+                return (
+                  <>
+                    <img
+                      src={resolvedIcon}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const fallback = getBrandIconByName(product.name);
+                        if (fallback && !e.currentTarget.getAttribute('data-fallback-applied')) {
+                          e.currentTarget.setAttribute('data-fallback-applied', 'true');
+                          e.currentTarget.src = fallback;
+                        } else {
+                          e.currentTarget.style.display = 'none';
+                          const fb = e.currentTarget.parentElement?.querySelector('.icon-fallback-badge');
+                          if (fb) fb.style.display = 'flex';
+                        }
+                      }}
+                    />
+                    <div className="icon-fallback-badge hidden w-full h-full items-center justify-center bg-rose-50 text-rose-600 font-bold text-lg">
+                      {product.name?.[0] || '🛍️'}
+                    </div>
+                  </>
+                );
+              }
+              return <span className="text-2xl">{resolvedIcon || '🛍️'}</span>;
+            })()}
           </div>
           <div>
             <h3 className="font-bold text-base sm:text-lg text-gray-900 leading-snug">

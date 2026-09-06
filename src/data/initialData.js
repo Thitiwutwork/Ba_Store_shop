@@ -1,20 +1,56 @@
-// Official Logo Icons (Loaded from /logo/ and high-res vector SVGs)
+// Official Logo Icons (Loaded from /logos/ and /logo/)
 export const APP_ICONS = {
-  iqiyi: "/logo/iqiyi.png",
-  viu: "/logo/viu.png",
-  disney: "/logo/disney.jpg",
-  wetv: "/logo/wetv.jpg",
-  bilibili: "/logo/bili.jpg",
-  youku: "/logo/youku.jpg",
-  
-  netflix: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23141414"/><path d="M32 20h11.5v60H32zm24.5 0H68v60H56.5z" fill="%23E50914"/><path d="M32 20h12l24 60H56z" fill="%23B81D24"/></svg>`,
-  youtube: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23FF0000"/><path d="M72 36c-.8-3-3.2-5.4-6.2-6.2C60.3 28 50 28 50 28s-10.3 0-15.8 1.8c-3 .8-5.4 3.2-6.2 6.2C26 41.5 26 50 26 50s0 8.5 1.8 14c.8 3 3.2 5.4 6.2 6.2 5.5 1.8 15.8 1.8 15.8 1.8s10.3 0 15.8-1.8c3-.8 5.4-3.2 6.2-6.2 1.8-5.5 1.8-14 1.8-14s0-8.5-1.8-14z" fill="white"/><polygon points="45,42 45,58 59,50" fill="%23FF0000"/></svg>`,
-  spotify: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23191414"/><circle cx="50" cy="50" r="38" fill="%231DB954"/><path d="M31 39c14-4 30-2 42 5" stroke="%23191414" stroke-width="6.5" stroke-linecap="round" fill="none"/><path d="M33 49c12-3 26-2 36 4" stroke="%23191414" stroke-width="5.5" stroke-linecap="round" fill="none"/><path d="M36 59c10-2 21-1 30 4" stroke="%23191414" stroke-width="4.5" stroke-linecap="round" fill="none"/></svg>`,
-  canva: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2300C4CC"/><stop offset="100%" stop-color="%237D2AE8"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(%23cg)"/><text x="50" y="60" fill="white" font-size="30" font-family="Brush Script MT,cursive,Arial" font-weight="bold" text-anchor="middle">Canva</text></svg>`,
-  chatgpt: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%2310A37F"/><circle cx="50" cy="50" r="28" fill="none" stroke="white" stroke-width="5"/><text x="50" y="57" fill="white" font-size="20" font-family="Arial,sans-serif" font-weight="bold" text-anchor="middle">AI</text></svg>`,
-  capcut: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23111111"/><path d="M26 36l24 14-24 14zm48 0L50 50l24 14z" fill="white"/></svg>`,
-  otp: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23F3F4F6"/><rect x="28" y="15" width="44" height="70" rx="8" fill="none" stroke="%23374151" stroke-width="4"/><circle cx="50" cy="76" r="3" fill="%23374151"/><circle cx="50" cy="42" r="16" fill="none" stroke="%23E11D48" stroke-width="3"/><text x="50" y="46" fill="%23E11D48" font-size="10" font-family="Arial,sans-serif" font-weight="900" text-anchor="middle">OTP</text></svg>`
+  iqiyi: "/logos/iqiyi.png",
+  viu: "/logos/viu.png",
+  disney: "/logos/disney.png",
+  wetv: "/logos/wetv.png",
+  bilibili: "/logos/bilibili_tv.png",
+  youku: "/logos/youku.png",
+  netflix: "/logos/netflix.png",
+  youtube: "/logos/youtube.png",
+  spotify: "/logos/spotify.png",
+  canva: "/logos/canva.png",
+  chatgpt: "/logos/chatgpt.png",
+  capcut: "/logos/capcut.png",
+  otp: "/logos/otp.png"
 };
+
+/**
+ * Resolve brand icon by product name keywords
+ */
+export function getBrandIconByName(name = '') {
+  const n = (name || '').toLowerCase();
+  if (n.includes('disney')) return APP_ICONS.disney;
+  if (n.includes('wetv')) return APP_ICONS.wetv;
+  if (n.includes('bili')) return APP_ICONS.bilibili;
+  if (n.includes('youku')) return APP_ICONS.youku;
+  if (n.includes('iqiyi')) return APP_ICONS.iqiyi;
+  if (n.includes('viu')) return APP_ICONS.viu;
+  if (n.includes('netflix')) return APP_ICONS.netflix;
+  if (n.includes('youtube')) return APP_ICONS.youtube;
+  if (n.includes('spotify')) return APP_ICONS.spotify;
+  if (n.includes('canva')) return APP_ICONS.canva;
+  if (n.includes('chatgpt') || n.includes('gpt')) return APP_ICONS.chatgpt;
+  if (n.includes('capcut')) return APP_ICONS.capcut;
+  if (n.includes('otp')) return APP_ICONS.otp;
+  return null;
+}
+
+/**
+ * Normalize and ensure an icon exists for a product
+ */
+export function normalizeProductIcon(icon, name = '') {
+  if (icon && typeof icon === 'string' && icon.trim()) {
+    const trimmed = icon.trim();
+    if (trimmed.startsWith('/logos/') || trimmed.startsWith('/logo/') || trimmed.startsWith('http') || trimmed.startsWith('data:image')) {
+      return trimmed;
+    }
+  }
+  const byName = getBrandIconByName(name);
+  if (byName) return byName;
+  return icon || '📱';
+}
+
 
 // Store information configuration
 export const DEFAULT_STORE_SETTINGS = {
