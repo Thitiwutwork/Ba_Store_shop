@@ -192,6 +192,7 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
         ) {
           setIsLoading(false);
           setIsSubmittingPin(false);
+          setActiveEmail(clean);
           setPendingEmail(clean);
           setIsMailboxLocked(true);
           setIsPinModalOpen(true);
@@ -581,7 +582,9 @@ export default function OtpMailboxPage({ initialEmail = '', onSwitchTab, onShowT
                 type="button"
                 onClick={() => {
                   setEmailInput(item);
-                  fetchMails(item);
+                  setActivePin('');
+                  setIsMailboxLocked(false);
+                  fetchMails(item, false, '');
                 }}
                 className={`group px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 border ${
                   activeEmail === item
