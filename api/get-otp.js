@@ -1,6 +1,8 @@
 // Vercel Serverless Function: Secure Maily Space OTP Proxy
 // Keeps Maily Space API Secret Key 100% on the server side (never exposed to client browser)
 
+const apiKey = process.env.MAILY_API_KEY || 'sk_v1_phbofy2tb4gvtmsq4g7nw1ywmmwv6c9p';
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -46,39 +48,47 @@ export default async function handler(req, res) {
       const [accountName, domainPart] = rawEmail.split('@');
       if (accountName && domainPart) {
         const domainId = domainPart.replace(/\./g, '');
-        const detailUrl = `https://api.maily.space/mail/public/mails/${mailIdParam}?accountName=${encodeURIComponent(accountName)}&domainId=${encodeURIComponent(domainId)}&size=1`;
+        const detailUrls = [
+          `https://api.maily.space/mail/public/mails/${mailIdParam}?accountName=${encodeURIComponent(accountName)}&domainId=${encodeURIComponent(domainId)}&size=1`,
+          `https://api.maily.space/mail/public/mails/detail?id=${encodeURIComponent(mailIdParam)}&accountName=${encodeURIComponent(accountName)}&domainId=${encodeURIComponent(domainId)}`,
+          `https://api.maily.space/mail/public/mails/${mailIdParam}?accountName=${encodeURIComponent(accountName)}&domainId=${encodeURIComponent(domainId)}`
+        ];
         const pubHeaders = {
-          'Accept': 'application/json, text/plain, */*',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json, text/plain, */*'
         };
         if (rawPin) {
           pubHeaders['X-Mailbox-Pin'] = rawPin;
-          pubHeaders['x-mailbox-pin'] = rawPin;
         }
 
-        const detailRes = await fetch(detailUrl, { headers: pubHeaders });
-        if (detailRes.ok) {
-          const detailJson = await detailRes.json().catch(() => null);
-          const full = Array.isArray(detailJson?.data)
-            ? detailJson.data[0]
-            : (Array.isArray(detailJson?.mails)
-                ? detailJson.mails[0]
-                : (detailJson?.data?.mail || detailJson?.data || detailJson?.mail || detailJson));
-          if (full) {
-            return res.status(200).json({
-              success: true,
-              source: 'public_detail',
-              mail: {
-                id: full.id || mailIdParam,
-                from: full.from || full.sender || 'ไม่ระบุผู้ส่ง',
-                to: rawEmail,
-                subject: full.subject || '(ไม่มีหัวข้อ)',
-                html: full.html || full.bodyHtml || full.contentHtml || full.body_html || '',
-                text: full.text || full.body || full.bodyText || full.contentText || full.body_text || '',
-                snippet: full.snippet || '',
-                createdAt: full.createdAt || full.date || new Date().toISOString()
+        for (const detailUrl of detailUrls) {
+          try {
+            const detailRes = await fetch(detailUrl, { headers: pubHeaders });
+            if (detailRes.ok) {
+              const detailJson = await detailRes.json().catch(() => null);
+              const full = Array.isArray(detailJson?.data)
+                ? detailJson.data[0]
+                : (Array.isArray(detailJson?.mails)
+                    ? detailJson.mails[0]
+                    : (detailJson?.data?.mail || detailJson?.data || detailJson?.mail || detailJson));
+              if (full) {
+                return res.status(200).json({
+                  success: true,
+                  source: 'public_detail',
+                  mail: {
+                    id: full.id || mailIdParam,
+                    from: full.from || full.sender || 'ไม่ระบุผู้ส่ง',
+                    to: rawEmail,
+                    subject: full.subject || '(ไม่มีหัวข้อ)',
+                    html: full.html || full.bodyHtml || full.contentHtml || full.body_html || '',
+                    text: full.text || full.body || full.bodyText || full.contentText || full.body_text || '',
+                    snippet: full.snippet || '',
+                    createdAt: full.createdAt || full.date || new Date().toISOString()
+                  }
+                });
               }
-            });
+            }
+          } catch (dErr) {
+            console.warn('Detail fetch error on proxy:', dErr);
           }
         }
       }
